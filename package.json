@@ -1,0 +1,46 @@
+{
+  "_from": "git+https://github.com/mightymop/cordova-plugin-oidc.git",
+  "_id": "cordova-plugin-oidc@1.0.0",
+  "_inBundle": false,
+  "_integrity": "",
+  "_location": "/cordova-plugin-oidc",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "git",
+    "raw": "https://github.com/mightymop/cordova-plugin-oidc.git",
+    "rawSpec": "https://github.com/mightymop/cordova-plugin-oidc.git",
+    "saveSpec": "git+https://github.com/mightymop/cordova-plugin-oidc.git",
+    "fetchSpec": "https://github.com/mightymop/cordova-plugin-oidc.git",
+    "gitCommittish": null
+  },
+  "_requiredBy": [
+    "#DEV:/",
+    "#USER"
+  ],
+  "_resolved": "git+https://github.com/mightymop/cordova-plugin-oidc.git",
+  "_spec": "https://github.com/mightymop/cordova-plugin-oidc.git",
+  "author": "",
+  "bundleDependencies": false,
+  "cordova": {
+    "id": "cordova-plugin-oidc",
+    "platforms": [
+      "android"
+    ]
+  },
+  "deprecated": false,
+  "description": "cordova plugin add https://github.com/mightymop/cordova-plugin-oidc.git\r ### 2. read README.md",
+  "engines": [
+    {
+      "name": "cordova",
+      "version": ">=3.4.0"
+    }
+  ],
+  "keywords": [
+    "ecosystem:cordova",
+    "cordova-android"
+  ],
+  "license": "ISC",
+  "name": "cordova-plugin-oidc",
+  "types": "./types/index.d.ts",
+  "version": "1.0.0"
+}
