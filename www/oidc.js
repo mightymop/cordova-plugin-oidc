@@ -5,6 +5,7 @@ var oidc = {
 	maxRetries : 3, 
 	retryDelay : 1000,
 	timeout : 10000,
+	clockskrew: 30,
 	accountStorage: {
 		getItem:function(key,success,error) {
 			exec(success, error, PLUGIN_NAME, 'readData', [{key}]);
@@ -234,7 +235,7 @@ var oidc = {
 				}
 
 				// Überprüfen, ob das Token abgelaufen ist
-				if (currentTime > payload.exp) {
+				if (currentTime + this.clockskrew > payload.exp) {
 					error('Token ist abgelaufen (exp ist in der Vergangenheit)');
 					return;  
 				}
