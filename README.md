@@ -23,12 +23,23 @@ error   = callback
 					scope: string,
 					prompt: "true"|"none"
 				},success,error);
+				
+	//	result - will be saved with saveData() to key "state"
+	//	{
+	//		"access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik5HVEZ2ZEstZnl0aEV1Q...",
+	//		"token_type": "Bearer",
+	//		"expires_in": 3599,
+	//		"refresh_token": "AwABAAAAvPM1KaPlrEqdFSBzjqfTGAMxZGUTdM0t4B4...",
+	//		"refresh_token_expires_in": 28800,
+	//		"id_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0.eyJhdWQiOiIyZDRkMTFhMi1mODE0LTQ2YTctOD...",
+	//	}
 		
 	startLogoutFlow({
 					post_logout_redirect_uri: string,
 					endpoint: string,
 					id_token_hint: string
 				},success,error);
+	
 				
 	getOIDCConfig(success,error) 
 	//Ask the plugin 'cordova-plugin-oidc-configapp' for configuration data. If the request is successful, it will be saved using 'setOIDCConfigLocal'.
@@ -59,9 +70,11 @@ error   = callback
 	getAccessToken(success,error)
 	//get current access_token
 	//if token is expired, function will try to perform a refresh
+	//result: access_token as string
 	
 	getIDToken(success,error)
 	//get current id_token
+	//result: id_token as string
 	
 	getOIDCConfigFromIssuer(issuer, success, fkterror)
 	//load openid-configuration from issuer (automatically saved with setOIDCConfigLocal)
