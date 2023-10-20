@@ -8,6 +8,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 
@@ -204,21 +205,26 @@ public class Utils {
   }
 
   public static void writeData(Context context, String key, String data) {
-    AccountManager accountManager = getAccountManager(context);
-    Account account = getAccount(context);
-    if (account != null) {
-      accountManager.setUserData(account, key, data);
-    }
+
+    Uri uri = Uri.parse("content://de.mopsdom.oidc.configapp.configprovider/account");
+
+    ContentResolver contentResolver = context.getContentResolver();
+
+    ContentValues values = new ContentValues();
+    values.put("key",key);
+    values.put("data",data);
+
+    contentResolver.update(uri, values,null,null);
   }
 
   public static void clear(Context context) {
-    AccountManager accountManager = getAccountManager(context);
-    Account account = getAccount(context);
+    /*Account account = getAccount(context);
     if (account != null) {
       String name = account.name;
       removeAccount(context);
       createAccount(context,name,null);
-    }
+    }*/
+    writeData(context,"state",null);
   }
 
   public static boolean removeAccount(Context context) {
@@ -250,12 +256,34 @@ public class Utils {
   }
 
   public static String readData(Context context, String key) {
-    AccountManager accountManager = getAccountManager(context);
-    Account account = getAccount(context);
-    if (account != null) {
-      return accountManager.getUserData(account, key);
+    Uri uri = Uri.parse("content://de.mopsdom.oidc.configapp.configprovider/account");
+
+    ContentResolver contentResolver = context.getContentResolver();
+
+    Cursor cursor = contentResolver.query(uri,new String[] {key},null,null);
+
+    try {
+      if (cursor != null && cursor.getCount() > 0) {
+        if (cursor.moveToNext()) {
+          int iCol = cursor.getColumnIndex(key);
+          String data = cursor.getString(iCol);
+          return data;
+        }
+      }
+
+      return null;
+
+    }catch (Exception e)
+    {
+        Log.e(Utils.class.getSimpleName(),e.getMessage());
+        return null;
     }
-    return null;
+    finally {
+      if (cursor != null) {
+        cursor.close();
+      }
+    }
+
   }
 
   private static AccountManager getAccountManager(Context context) {
