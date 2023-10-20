@@ -200,8 +200,16 @@ var oidc = {
 	},
 	getIDToken: function(success,error) {
 		this.getData('state',(state)=>{
-			let data = typeof state==='string'?JSON.parse(state):state;
-			success(data.id_token);				
+			if (state)
+			{
+				let data = typeof state==='string'?JSON.parse(state):state;
+				success(data.id_token);				
+			}
+			else 
+			{
+				console.error('state is unavailable');
+				error('Nutzer nicht angemeldet!');
+			}
 		},(err)=>{
 			console.error(err);
 			error('Nutzer nicht angemeldet!');
