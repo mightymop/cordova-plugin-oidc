@@ -32,7 +32,7 @@ var oidc = {
   
 			const params = new URLSearchParams(url.search);
 			const code = params.get('code');
-	  
+			console.debug(code);
 			if (code) {
 				this.performTokenRequest(code, param.client_id, param.redirect_uri, success, error);
 			} else {
@@ -270,19 +270,21 @@ var oidc = {
 	  return decodeURIComponent(escape(rawData));
 	},
 	performTokenRequest: function(authCode, client_id, redirect_uri, success, fkterror,config) {
+		console.debug("performTokenRequest");
 		let openIDConfig = config?config:this.getOIDCConfigLocal();
 		this.getPackageName((packagename)=>{
+			console.debug("packagename",packagename);
 			let params = {
 				grant_type: 'authorization_code',
 				code: authCode,
 				redirect_uri: redirect_uri.replace(/\*/g, packagename),
 				client_id: client_id
 			};
-			  
+			console.debug("params",params);
 			this.makeRequest(openIDConfig.token_endpoint,params,'POST')
 			.then(tokens => {
 				let data = typeof tokens==='string'?JSON.parse(tokens):tokens;
-				
+				console.debug("makeRequest",data);
 				exec(()=>{
 					this.saveData('state',data);
 					success(tokens);	

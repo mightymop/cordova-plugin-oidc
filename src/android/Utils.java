@@ -1,18 +1,14 @@
 package de.mopsdom.oidc.cordova;
 
-import static android.content.Context.MODE_PRIVATE;
-
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 
-import org.apache.cordova.PluginResult;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -30,44 +26,58 @@ public class Utils {
   public final static String KEY_SCOPE = "SCOPE";
   public final static String KEY_NOTIFICATION = "NOTIFICATION";
 
+  public static final String AUTHORITY = "de.mopsdom.oidc.configapp.configprovider";
+
   public final static String TAG = Utils.class.getSimpleName();
 
 
   public static void writeConfig(Context context, String json) {
-    SharedPreferences authPrefs = context.getSharedPreferences("auth", MODE_PRIVATE);
-    authPrefs.edit().putString("config", json).apply();
+    setConnectionConfig(context, json);
   }
 
-  public static String readConfig(Context context) {
-    SharedPreferences authPrefs = context.getSharedPreferences("auth", MODE_PRIVATE);
-    String config = authPrefs.getString("config", null);
+  public static boolean setConnectionConfig(Context context, String data) {
 
-    if (config == null) {
-      try {
-        JSONObject jconf = new JSONObject();
+    try {
+      Uri uri = Uri.parse("content://" + AUTHORITY + "/connectionconfig");
 
-        jconf.put(Utils.KEY_CLIENT_ID.toLowerCase(), Utils.getStringRessource(context, "default_client_id"));
-        jconf.put(Utils.KEY_REDIRECT_URI.toLowerCase(), Utils.getStringRessource(context, "default_redirect_uri"));
-        jconf.put(Utils.KEY_SCOPE.toLowerCase(), Utils.getStringRessource(context, "default_scope"));
-        jconf.put(Utils.KEY_USERCLAIM.toLowerCase(), Utils.getStringRessource(context, "default_userclaim"));
-        jconf.put(Utils.KEY_ISSUER.toLowerCase(), Utils.getStringRessource(context, "default_issuer"));
-        jconf.put(Utils.KEY_LOGOUT_REDIRECT_URI.toLowerCase(), Utils.getStringRessource(context, "default_redirect_uri_logout"));
-		    jconf.put(Utils.KEY_ACCOUNTTYPE.toLowerCase(), Utils.getStringRessource(context, "account_type"));
-        jconf.put(Utils.KEY_NOTIFICATION.toLowerCase(), "true");
+      ContentResolver contentResolver = context.getContentResolver();
 
-        writeConfig(context, jconf.toString());
-      } catch (Exception e) {
-        Log.e(TAG, e.getMessage(), e);
+      ContentValues values = new ContentValues();
+      values.put("config", data);
+
+      int result = contentResolver.update(uri, values, null, null);
+
+      return result == 1;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  public static String getConfData(Context context, String type) {
+    try {
+      Uri uri = Uri.parse("content://" + AUTHORITY + "/" + type);
+
+      ContentResolver contentResolver = context.getContentResolver();
+
+      Cursor cursor = contentResolver.query(uri, null, null, null, null);
+
+      if (cursor != null) {
+        if (cursor.moveToFirst()) {
+          int colIndex = cursor.getColumnIndex("result");
+          return cursor.getString(colIndex);
+        }
+        cursor.close();
       }
 
-      config = authPrefs.getString("config", null);
+      return null;
+    } catch (Exception e) {
+      Log.e(oidc.class.getSimpleName(), e.getMessage());
+      return null;
     }
-
-    return config;
   }
 
   public static String getVal(Context context, String key) {
-    String jsonconfig = readConfig(context);
+    String jsonconfig = getConfData(context, "connectionconfig");
     if (jsonconfig != null) {
       try {
         JSONObject config = new JSONObject(jsonconfig);
@@ -82,7 +92,7 @@ public class Utils {
   }
 
   public static void setVal(Context context, String key, String val) {
-    String jsonconfig = readConfig(context);
+    String jsonconfig = getConfData(context, "connectionconfig");
 
     JSONObject config;
     if (jsonconfig == null) {
@@ -118,7 +128,7 @@ public class Utils {
   public static String getNameFromToken(Context context, String id_token) {
     String userclaim = Utils.getVal(context, Utils.KEY_USERCLAIM);
     if (userclaim == null) {
-      userclaim = getStringRessource(context,"default_userclaim");
+      userclaim = getStringRessource(context, "default_userclaim");
       Utils.setVal(context, Utils.KEY_USERCLAIM, userclaim);
     }
     return (String) getClaimFromToken(id_token, userclaim);
@@ -161,7 +171,6 @@ public class Utils {
   }
 
 
-
   public static boolean createAccount(Context context, String username, String state) {
 
     Account account = getAccount(context);
@@ -170,26 +179,20 @@ public class Utils {
       return false;
     }
 
-    try
-    {
+    try {
       Uri uri = Uri.parse("content://de.mopsdom.oidc.configapp.configprovider/account");
 
       ContentResolver contentResolver = context.getContentResolver();
 
       ContentValues values = new ContentValues();
       values.put("name", username);
-      values.put("state",state);
+      values.put("state", state);
 
-      int result = contentResolver.update(uri, values,null,null);
+      contentResolver.insert(uri, values);
 
-      if (result == 1) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-    catch (Exception e)
-    {
+      return true;
+
+    } catch (Exception e) {
       return false;
     }
 
@@ -198,7 +201,7 @@ public class Utils {
   public static String getAccountType(Context context) {
     String accounttype = Utils.getVal(context, Utils.KEY_ACCOUNTTYPE);
     if (accounttype == null) {
-      accounttype = getStringRessource(context,"account_type");
+      accounttype = getStringRessource(context, "account_type");
       Utils.setVal(context, Utils.KEY_ACCOUNTTYPE, accounttype);
     }
     return accounttype;
@@ -211,10 +214,10 @@ public class Utils {
     ContentResolver contentResolver = context.getContentResolver();
 
     ContentValues values = new ContentValues();
-    values.put("key",key);
-    values.put("data",data);
+    values.put("key", key);
+    values.put("data", data);
 
-    contentResolver.update(uri, values,null,null);
+    contentResolver.update(uri, values, null, null);
   }
 
   public static void clear(Context context) {
@@ -224,7 +227,7 @@ public class Utils {
       removeAccount(context);
       createAccount(context,name,null);
     }*/
-    writeData(context,"state",null);
+    writeData(context, "state", null);
   }
 
   public static boolean removeAccount(Context context) {
@@ -235,22 +238,15 @@ public class Utils {
       return false;
     }
 
-    try
-    {
+    try {
       Uri uri = Uri.parse("content://de.mopsdom.oidc.configapp.configprovider/account");
 
       ContentResolver contentResolver = context.getContentResolver();
 
-      int result = contentResolver.delete(uri, null,null);
+      int result = contentResolver.delete(uri, null, null);
 
-      if (result == 1) {
-        return true;
-      } else {
-        return false;
-      }
-    }
-    catch (Exception e)
-    {
+      return result == 1;
+    } catch (Exception e) {
       return false;
     }
   }
@@ -260,7 +256,7 @@ public class Utils {
 
     ContentResolver contentResolver = context.getContentResolver();
 
-    Cursor cursor = contentResolver.query(uri,new String[] {key},null,null);
+    Cursor cursor = contentResolver.query(uri, new String[]{key}, null, null);
 
     try {
       if (cursor != null && cursor.getCount() > 0) {
@@ -273,12 +269,10 @@ public class Utils {
 
       return null;
 
-    }catch (Exception e)
-    {
-        Log.e(Utils.class.getSimpleName(),e.getMessage());
-        return null;
-    }
-    finally {
+    } catch (Exception e) {
+      Log.e(Utils.class.getSimpleName(), e.getMessage());
+      return null;
+    } finally {
       if (cursor != null) {
         cursor.close();
       }
@@ -291,7 +285,7 @@ public class Utils {
   }
 
   public static Account getAccount(Context context) {
-    Account result[] = getAccountManager(context).getAccountsByType(Utils.getAccountType(context));
+    Account[] result = getAccountManager(context).getAccountsByType(Utils.getAccountType(context));
     if (result != null && result.length > 0) {
       return result[0];
     }
