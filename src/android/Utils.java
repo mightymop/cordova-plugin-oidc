@@ -177,6 +177,7 @@ public class Utils {
 
       ContentValues values = new ContentValues();
       values.put("name", username);
+      values.put("state",state);
 
       int result = contentResolver.update(uri, values,null,null);
 
