@@ -163,13 +163,13 @@ var oidc = {
 	},
 	mergeData: function(refreshedData) {
 		this.getData('state',(state)=>{
-			local.access_token = refreshedData.access_token;
-			local.expires_in = refreshedData.expires_in;
-			local.id_token = refreshedData.id_token;
-			local.scope = refreshedData.scope?refreshedData.scope:local.scope;
-			local.refresh_token = refreshedData.refresh_token?refreshedData.refresh_token:local.refresh_token;
-			local.refresh_token_expires_in = refreshedData.refresh_token_expires_in?refreshedData.refresh_token_expires_in:local.refresh_token_expires_in;
-			this.saveData('state',local);
+			state.access_token = refreshedData.access_token;
+			state.expires_in = refreshedData.expires_in;
+			state.id_token = refreshedData.id_token;
+			state.scope = refreshedData.scope?refreshedData.scope:state.scope;
+			state.refresh_token = refreshedData.refresh_token?refreshedData.refresh_token:state.refresh_token;
+			state.refresh_token_expires_in = refreshedData.refresh_token_expires_in?refreshedData.refresh_token_expires_in:state.refresh_token_expires_in;
+			this.saveData('state',state);
 		},(err)=>{
 			console.error(err);
 		});	
@@ -184,10 +184,10 @@ var oidc = {
 			},()=>{
 				
 				this.getConnectionConfig((res)=>{
-					let data = typeof local==='string'?JSON.parse(local):local;
+					let data = typeof state==='string'?JSON.parse(state):state;
 					let config = typeof res==='string'?JSON.parse(res):res;
-					this.performRefreshRequest(config.client_id, config.scope, data.refresh_token, (res)=>{
-						let result = typeof res==='string'?JSON.parse(res):res;
+					this.performRefreshRequest(config.issuer,config.client_id, config.scope, data.refresh_token, (res2)=>{
+						let result = typeof res2==='string'?JSON.parse(res2):res2;
 						success(result.access_token);
 					}, error);	
 				}, error); 		
@@ -200,6 +200,7 @@ var oidc = {
 	},
 	getIDToken: function(success,error) {
 		this.getData('state',(state)=>{
+			console.debug(state);
 			if (state)
 			{
 				let data = typeof state==='string'?JSON.parse(state):state;
@@ -295,28 +296,48 @@ var oidc = {
 			fkterror(err);
 		});	
 	},
-	performRefreshRequest: function(client_id, scope, refresh_token, success, fkterror,config) {
-		
-		let openIDConfig = config?config:this.getOIDCConfigLocal();
+	performRefreshRequest: function(issuer, client_id, scope, refresh_token, success, fkterror,config) {
 		let params = {
-				grant_type: 'refresh_token',
-				client_id: client_id,
-				refresh_token: refresh_token,
-				scope: scope
-			  };
-	  
-		this.makeRequest(openIDConfig.token_endpoint,params,'POST')
-		.then(tokens => {
-			console.log('Obtained tokens:', tokens);
-			let data = typeof tokens==='string'?JSON.parse(tokens):tokens;
-			this.mergeData(data);
-			success(tokens);
-		})
-		.catch(error => {
-			console.error('Error obtaining tokens:', error);
-			// Hier können Sie die Fehlerbehandlung durchführen
-			fkterror(error);
-		});
+			grant_type: 'refresh_token',
+			client_id: client_id,
+			refresh_token: refresh_token,
+			scope: scope
+		  };
+			  
+		let openIDConfig = config?config:this.getOIDCConfigLocal();
+		if (!openIDConfig)
+		{
+			this.getOIDCConfigFromIssuer(issuer,(config)=>{
+				openIDConfig = typeof config==='string'?JSON.parse(config):config;
+				this.makeRequest(openIDConfig.token_endpoint,params,'POST')
+				.then(tokens => {
+					console.log('Obtained tokens:', tokens);
+					let data = typeof tokens==='string'?JSON.parse(tokens):tokens;
+					this.mergeData(data);
+					success(tokens);
+				})
+				.catch(error => {
+					console.error('Error obtaining tokens:', error);
+					// Hier können Sie die Fehlerbehandlung durchführen
+					fkterror(error);
+				});
+			},fkterror);
+		}
+		else
+		{
+			this.makeRequest(openIDConfig.token_endpoint,params,'POST')
+			.then(tokens => {
+				console.log('Obtained tokens:', tokens);
+				let data = typeof tokens==='string'?JSON.parse(tokens):tokens;
+				this.mergeData(data);
+				success(tokens);
+			})
+			.catch(error => {
+				console.error('Error obtaining tokens:', error);
+				// Hier können Sie die Fehlerbehandlung durchführen
+				fkterror(error);
+			});
+		}
 	},
 	getOIDCConfigFromIssuer: function(issuer, success, fkterror) {
 	
