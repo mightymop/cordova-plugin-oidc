@@ -6,6 +6,9 @@ import android.accounts.OnAccountsUpdateListener;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
+import android.os.Build;
+import android.util.Log;
+import android.webkit.WebView;
 
 import androidx.annotation.NonNull;
 
@@ -15,7 +18,11 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaWebView;
 import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.io.IOException;
+import java.util.HashMap;
 
 public class oidc extends CordovaPlugin {
 
@@ -29,6 +36,8 @@ public class oidc extends CordovaPlugin {
   @Override
   public void onDestroy() {
     super.onDestroy();
+    Log.d(oidc.class.getSimpleName(), "onDestroy");
+
     if (listener != null) {
       AccountManager accountManager = AccountManager.get(cordova.getContext());
       accountManager.removeOnAccountsUpdatedListener(listener);
@@ -40,27 +49,43 @@ public class oidc extends CordovaPlugin {
   public void initialize(CordovaInterface cordova, CordovaWebView webView) {
     super.initialize(cordova, webView);
 
+    Log.d(oidc.class.getSimpleName(), "initialize");
+
+    cordova.getActivity().runOnUiThread(new Runnable() {
+      @Override
+      public void run() {
+        // Setze den Debug-Modus
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+          WebView.setWebContentsDebuggingEnabled(true);
+        }
+      }
+    });
+
     this.registerAuthChangeHandler();
   }
 
   @Override
   public void onActivityResult(int requestCode, int resultCode, Intent intent) {
     super.onActivityResult(requestCode, resultCode, intent);
+    Log.d(oidc.class.getSimpleName(), "onActivityResult");
 
     if (_callbackContext != null && intent != null) {
       if (resultCode == Activity.RESULT_OK) {
         switch (requestCode) {
           case REQUEST_LOGIN:
           case REQUEST_LOGOUT:
+            Log.d(oidc.class.getSimpleName(), intent.getDataString());
             _callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, intent.getDataString()));
             break;
 
           case REQUEST_CONFIG:
           case REQUEST_CONNECTIONCONFIG:
+            Log.d(oidc.class.getSimpleName(), intent.getExtras().getString("config"));
             _callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, intent.getExtras().getString("config")));
             break;
 
           default:
+            Log.d(oidc.class.getSimpleName(), "NO DATA - Default");
             _callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK));
             break;
         }
@@ -69,13 +94,15 @@ public class oidc extends CordovaPlugin {
         if (intent.hasExtra("error")) {
           error = intent.getStringExtra("error");
         }
-
+        Log.e(oidc.class.getSimpleName(), error);
         _callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, error));
       }
     }
   }
 
   private void refreshNotification() {
+
+    Log.d(oidc.class.getSimpleName(), "refreshNotification");
     try {
       String config = Utils.getConfData(cordova.getContext(), "connectionconfig");
       JSONObject json = new JSONObject(config);
@@ -116,6 +143,7 @@ public class oidc extends CordovaPlugin {
 
   public void registerAuthChangeHandler() {
 
+    Log.d(oidc.class.getSimpleName(), "registerAuthChangeHandler");
     if (listener == null) {
 
       listener = accounts -> {
@@ -128,6 +156,7 @@ public class oidc extends CordovaPlugin {
 
   private void startLoginFlow(JSONArray data) {
 
+    Log.d(oidc.class.getSimpleName(), "startLoginFlow");
     try {
       JSONObject json = data.getJSONObject(0);
       Intent i = new Intent(cordova.getContext(), AuthManagerActivity.class);
@@ -150,6 +179,8 @@ public class oidc extends CordovaPlugin {
 
   private void startLogoutFlow(JSONArray data) {
 
+    Log.d(oidc.class.getSimpleName(), "startLogoutFlow");
+
     try {
       JSONObject json = data.getJSONObject(0);
       Intent i = new Intent(cordova.getContext(), AuthManagerActivity.class);
@@ -170,6 +201,7 @@ public class oidc extends CordovaPlugin {
 
   private void setConnectionConfig(JSONArray data) {
 
+    Log.d(oidc.class.getSimpleName(), "setConnectionConfig");
     try {
       boolean result = Utils.setConnectionConfig(cordova.getContext(), data.getJSONObject(0).toString());
 
@@ -184,6 +216,8 @@ public class oidc extends CordovaPlugin {
   }
 
   private void getConnectionConfig() {
+
+    Log.d(oidc.class.getSimpleName(), "getConnectionConfig");
     String result = Utils.getConfData(cordova.getContext(), "connectionconfig");
     if (result != null) {
       _callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, result));
@@ -193,6 +227,8 @@ public class oidc extends CordovaPlugin {
   }
 
   private void getOIDCConfig() {
+
+    Log.d(oidc.class.getSimpleName(), "getOIDCConfig");
     String result = Utils.getConfData(cordova.getContext(), "config");
     if (result != null) {
       _callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, result));
@@ -202,6 +238,7 @@ public class oidc extends CordovaPlugin {
   }
 
   private void createAccount(JSONArray data) {
+    Log.d(oidc.class.getSimpleName(), "createAccount");
     try {
       JSONObject json = data.getJSONObject(0);
       if (Utils.getAccount(cordova.getContext()) != null) {
@@ -222,6 +259,8 @@ public class oidc extends CordovaPlugin {
   }
 
   private void removeAccount() {
+
+    Log.d(oidc.class.getSimpleName(), "removeAccount");
     try {
       if (Utils.getAccount(cordova.getContext()) == null) {
         PluginResult result = new PluginResult(PluginResult.Status.ERROR, "Account nicht vorhanden.");
@@ -239,6 +278,8 @@ public class oidc extends CordovaPlugin {
   }
 
   private void writeData(JSONArray data) {
+
+    Log.d(oidc.class.getSimpleName(), "writeData");
     try {
       JSONObject json = data.getJSONObject(0);
       if (Utils.getAccount(cordova.getContext()) == null) {
@@ -256,7 +297,53 @@ public class oidc extends CordovaPlugin {
     }
   }
 
+  /*
+  {
+    "body": string,
+    "method": string,
+    "headers": [{"key":"bla","value": "keks"},... ],
+    "endpoint: string "url....."
+  }
+   */
+  private void makeRequest(JSONArray data) {
+
+    cordova.getThreadPool().execute(new Runnable() {
+      public void run() {
+        try {
+          JSONObject params = data.getJSONObject(0);
+          HashMap<String, String> headers = new HashMap<>();
+          String body = params.has("body") ? params.getString("body") : null;
+          int timeout = params.has("timeout") ? params.getInt("timeout") : 10000;
+
+          if (params.has("headers") && params.get("headers") instanceof JSONArray) {
+            JSONArray jheaders = params.getJSONArray("headers");
+            for (int i = 0; i < jheaders.length(); i++) {
+              JSONObject itm = jheaders.getJSONObject(i);
+              headers.put(itm.getString("key"), itm.getString("value"));
+            }
+          } else if (params.has("headers") && params.get("headers") instanceof JSONObject) {
+            JSONObject itm = (JSONObject) params.get("headers");
+            headers.put(itm.getString("key"), itm.getString("value"));
+          }
+
+
+          String strjson = HttpRequest.sendHttpRequest(params.getString("endpoint"), params.getString("method"), body, timeout, headers);
+
+          _callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, strjson));
+        } catch (IOException e2) {
+          _callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, Utils.getExceptionMessage(-1, e2.getMessage())));
+        } catch (JSONException e1) {
+          _callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, Utils.getExceptionMessage(-1, e1.getMessage())));
+        } catch (Exception e) {
+          _callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, Utils.getExceptionMessage(-1, e.getMessage())));
+        }
+      }
+    });
+  }
+
   private void readData(JSONArray data) {
+
+    Log.d(oidc.class.getSimpleName(), "readData");
     try {
       if (Utils.getAccount(cordova.getContext()) == null) {
         PluginResult result = new PluginResult(PluginResult.Status.ERROR, "Account nicht vorhanden.");
@@ -275,6 +362,8 @@ public class oidc extends CordovaPlugin {
   }
 
   private void clear() {
+
+    Log.d(oidc.class.getSimpleName(), "clear");
     try {
       if (Utils.getAccount(cordova.getContext()) == null) {
         PluginResult result = new PluginResult(PluginResult.Status.ERROR, "Account nicht vorhanden.");
@@ -294,6 +383,9 @@ public class oidc extends CordovaPlugin {
   @Override
   public boolean execute(@NonNull final String action, final JSONArray data, final CallbackContext callbackContext) {
 
+    Log.d(oidc.class.getSimpleName(), "execute - " + action);
+
+    Log.d(oidc.class.getSimpleName(), data != null ? data.toString() : "NULL");
     _callbackContext = callbackContext;
 
     switch (action) {
@@ -339,11 +431,17 @@ public class oidc extends CordovaPlugin {
         break;
 
       case "getPackageName":
-        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, cordova.getContext().getPackageName()));
+        String packageName = cordova.getContext().getPackageName();
+        Log.d(oidc.class.getSimpleName(), "getPackageName: " + packageName);
+        callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, packageName));
         break;
 
       case "refreshNotification":
         refreshNotification();
+        break;
+
+      case "makeRequest":
+        makeRequest(data);
         break;
 
       default:

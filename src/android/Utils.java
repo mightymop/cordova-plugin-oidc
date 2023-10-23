@@ -16,27 +16,18 @@ import java.util.Base64;
 
 public class Utils {
 
-  public final static String KEY_ISSUER = "ISSUER";
-  public final static String KEY_CLIENT_ID = "CLIENT_ID";
-  public final static String KEY_REDIRECT_URI = "REDIRECT_URI";
-  public final static String KEY_LOGOUT_REDIRECT_URI = "LOGOUT_REDIRECT_URI";
-
   public final static String KEY_USERCLAIM = "USERCLAIM";
   public final static String KEY_ACCOUNTTYPE = "ACCOUNTTYPE";
-  public final static String KEY_SCOPE = "SCOPE";
-  public final static String KEY_NOTIFICATION = "NOTIFICATION";
-
   public static final String AUTHORITY = "de.mopsdom.oidc.configapp.configprovider";
-
   public final static String TAG = Utils.class.getSimpleName();
 
-
   public static void writeConfig(Context context, String json) {
+    Log.d(Utils.class.getSimpleName(),"writeConfig");
     setConnectionConfig(context, json);
   }
 
   public static boolean setConnectionConfig(Context context, String data) {
-
+    Log.d(Utils.class.getSimpleName(),"setConnectionConfig");
     try {
       Uri uri = Uri.parse("content://" + AUTHORITY + "/connectionconfig");
 
@@ -54,6 +45,8 @@ public class Utils {
   }
 
   public static String getConfData(Context context, String type) {
+
+    Log.d(Utils.class.getSimpleName(),"getConfData");
     try {
       Uri uri = Uri.parse("content://" + AUTHORITY + "/" + type);
 
@@ -77,6 +70,7 @@ public class Utils {
   }
 
   public static String getVal(Context context, String key) {
+    Log.d(Utils.class.getSimpleName(),"getVal");
     String jsonconfig = getConfData(context, "connectionconfig");
     if (jsonconfig != null) {
       try {
@@ -92,6 +86,8 @@ public class Utils {
   }
 
   public static void setVal(Context context, String key, String val) {
+
+    Log.d(Utils.class.getSimpleName(),"setVal");
     String jsonconfig = getConfData(context, "connectionconfig");
 
     JSONObject config;
@@ -116,6 +112,8 @@ public class Utils {
   }
 
   public static String getStringRessource(Context context, String resourceName) {
+
+    Log.d(Utils.class.getSimpleName(),"getStringRessource");
     int resourceId = context.getResources().getIdentifier(resourceName, "string", context.getPackageName());
 
     if (resourceId != 0) {
@@ -126,6 +124,8 @@ public class Utils {
   }
 
   public static String getNameFromToken(Context context, String id_token) {
+
+    Log.d(Utils.class.getSimpleName(),"getNameFromToken");
     String userclaim = Utils.getVal(context, Utils.KEY_USERCLAIM);
     if (userclaim == null) {
       userclaim = getStringRessource(context, "default_userclaim");
@@ -135,6 +135,8 @@ public class Utils {
   }
 
   public static Object getClaimFromToken(String id_token, String claim) {
+
+    Log.d(Utils.class.getSimpleName(),"getClaimFromToken");
     JSONObject payload = Utils.getPayload(id_token);
     try {
       return payload.get(claim);
@@ -146,6 +148,7 @@ public class Utils {
 
   public static JSONObject getPayload(String token) {
 
+    Log.d(Utils.class.getSimpleName(),"getPayload");
     String[] parts = token.split("\\.");
     String decodedString = decodeBase64(parts[1]);
 
@@ -161,6 +164,8 @@ public class Utils {
   }
 
   private static String decodeBase64(String data) {
+
+    Log.d(Utils.class.getSimpleName(),"decodeBase64");
     byte[] result = null;
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
       result = Base64.getDecoder().decode(data);
@@ -173,6 +178,7 @@ public class Utils {
 
   public static boolean createAccount(Context context, String username, String state) {
 
+    Log.d(Utils.class.getSimpleName(),"createAccount");
     Account account = getAccount(context);
 
     if (account != null) {
@@ -199,6 +205,8 @@ public class Utils {
   }
 
   public static String getAccountType(Context context) {
+
+    Log.d(Utils.class.getSimpleName(),"getAccountType");
     String accounttype = Utils.getVal(context, Utils.KEY_ACCOUNTTYPE);
     if (accounttype == null) {
       accounttype = getStringRessource(context, "account_type");
@@ -209,6 +217,7 @@ public class Utils {
 
   public static void writeData(Context context, String key, String data) {
 
+    Log.d(Utils.class.getSimpleName(),"writeData");
     Uri uri = Uri.parse("content://de.mopsdom.oidc.configapp.configprovider/account");
 
     ContentResolver contentResolver = context.getContentResolver();
@@ -221,6 +230,8 @@ public class Utils {
   }
 
   public static void clear(Context context) {
+
+    Log.d(Utils.class.getSimpleName(),"clear");
     /*Account account = getAccount(context);
     if (account != null) {
       String name = account.name;
@@ -232,6 +243,7 @@ public class Utils {
 
   public static boolean removeAccount(Context context) {
 
+    Log.d(Utils.class.getSimpleName(),"removeAccount");
     Account account = getAccount(context);
 
     if (account == null) {
@@ -252,6 +264,8 @@ public class Utils {
   }
 
   public static String readData(Context context, String key) {
+
+    Log.d(Utils.class.getSimpleName(),"readData");
     Uri uri = Uri.parse("content://de.mopsdom.oidc.configapp.configprovider/account");
 
     ContentResolver contentResolver = context.getContentResolver();
@@ -277,14 +291,30 @@ public class Utils {
         cursor.close();
       }
     }
+  }
 
+  public static String getExceptionMessage(int status, String message)
+  {
+    try {
+      JSONObject result = new JSONObject();
+      result.put("status",status);
+      result.put("message",message);
+      return result.toString();
+    }
+    catch (Exception e)
+    {
+      return null;
+    }
   }
 
   private static AccountManager getAccountManager(Context context) {
+
+    Log.d(Utils.class.getSimpleName(),"getAccountManager");
     return context.getSystemService(AccountManager.class);
   }
 
   public static Account getAccount(Context context) {
+    Log.d(Utils.class.getSimpleName(),"getAccount");
     Account[] result = getAccountManager(context).getAccountsByType(Utils.getAccountType(context));
     if (result != null && result.length > 0) {
       return result[0];

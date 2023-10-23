@@ -6,8 +6,6 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import de.mopsdom.oidc.cordova.AuthManagerActivity;
-
 public class RedirectActivity extends AppCompatActivity {
 
   @Override

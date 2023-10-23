@@ -69,6 +69,7 @@
 		
 	<source-file src="src/android/AuthManagerActivity.java" target-dir="src/de/mopsdom/oidc/cordova"/>
 	<source-file src="src/android/RedirectActivity.java" target-dir="src/de/mopsdom/oidc/cordova"/>
+	<source-file src="src/android/HttpRequest.java" target-dir="src/de/mopsdom/oidc/cordova"/>
 	
 	<source-file src="src/android/Utils.java" target-dir="src/de/mopsdom/oidc/cordova"/>
 		

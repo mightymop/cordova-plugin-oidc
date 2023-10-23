@@ -4,8 +4,8 @@ var PLUGIN_NAME = 'oidc';
 var oidc = {
 	maxRetries : 3, 
 	retryDelay : 1000,
-	timeout : 10000,
 	clockskrew: 30,
+	timeout: 10000,
 	accountStorage: {
 		getItem:function(key,success,error) {
 			exec(success, error, PLUGIN_NAME, 'readData', [{key}]);
@@ -27,12 +27,14 @@ var oidc = {
 	},
 	storage: this.accountStorage,
 	startLoginFlow: function (param,success, error) {
+		console.log("OIDC","startLoginFlow",param);
 		exec((auchcodeUrl)=>{
+			console.log("startLoginFlow - success",auchcodeUrl);
 			const url = new URL(auchcodeUrl);
   
 			const params = new URLSearchParams(url.search);
 			const code = params.get('code');
-			console.debug(code);
+			
 			if (code) {
 				this.performTokenRequest(code, param.client_id, param.redirect_uri, success, error);
 			} else {
@@ -52,7 +54,7 @@ var oidc = {
 	},
 	getOIDCConfig: function (success, error) {
 		exec((config)=>{
-			let data = typeof config==='string'?JSON.parse(config):config;
+			let data = this.convertToObject(config);
 			
 			this.setOIDCConfigLocal(data);
 			success(data);
@@ -71,11 +73,11 @@ var oidc = {
 		try {
 			if (this.storage===sessionStorage||this.storage===localStorage)
 			{
-				this.storage.setItem(key, JSON.stringify(data));
+				this.storage.setItem(key, data);
 			}
 			else
 			{
-				this.accountStorage.setItem(key, JSON.stringify(data));
+				this.accountStorage.setItem(key, data);
 			}
 			
 		} catch (error) {
@@ -121,7 +123,14 @@ var oidc = {
 	getOIDCConfigLocal: function (){
 		try {
 			const value = sessionStorage.getItem('config');
-			return value ? JSON.parse(value) : null;
+			if (value!==null)
+			{
+				return typeof value==='string'?JSON.parse(value):value;
+			}
+			else 
+			{
+				return null;
+			}
 		} catch (error) {
 			console.error('Error reading from storage:', error);
 			return null;
@@ -129,7 +138,7 @@ var oidc = {
 	},
 	setOIDCConfigLocal: function (config){
 			try {
-			sessionStorage.setItem('config', JSON.stringify(config));
+			sessionStorage.setItem('config', typeof config!=='string'?JSON.stringify(config):config);
 		} catch (error) {
 			console.error('Error writing to storage:', error);
 		}
@@ -178,16 +187,16 @@ var oidc = {
 		this.getData('state',(state)=>{
 			
 			this.hasValidAccessToken(()=>{
-				let local = typeof state==='string'?JSON.parse(state):state;
+				let local = this.convertToObject(state);
 				success(local.access_token);
 				return;
 			},()=>{
 				
 				this.getConnectionConfig((res)=>{
-					let data = typeof state==='string'?JSON.parse(state):state;
-					let config = typeof res==='string'?JSON.parse(res):res;
+					let data = this.convertToObject(state);
+					let config = this.convertToObject(res);
 					this.performRefreshRequest(config.issuer,config.client_id, config.scope, data.refresh_token, (res2)=>{
-						let result = typeof res2==='string'?JSON.parse(res2):res2;
+						let result = this.convertToObject(res2);
 						success(result.access_token);
 					}, error);	
 				}, error); 		
@@ -203,7 +212,7 @@ var oidc = {
 			console.debug(state);
 			if (state)
 			{
-				let data = typeof state==='string'?JSON.parse(state):state;
+				let data = this.convertToObject(state);
 				success(data.id_token);				
 			}
 			else 
@@ -220,7 +229,7 @@ var oidc = {
 		this.getData('state',(state)=>{
 			const currentTime = Math.floor(Date.now() / 1000);
 
-			let local = typeof state==='string'?JSON.parse(state):state;
+			let local = this.convertToObject(state);
 			try {
 			// Das JWT Access Token besteht aus drei Teilen: Header.Payload.Signature
 				const parts = local.access_token.split('.');
@@ -270,25 +279,24 @@ var oidc = {
 	  return decodeURIComponent(escape(rawData));
 	},
 	performTokenRequest: function(authCode, client_id, redirect_uri, success, fkterror,config) {
-		console.debug("performTokenRequest");
+		console.log("performTokenRequest",authCode,client_id,redirect_uri,config);
 		let openIDConfig = config?config:this.getOIDCConfigLocal();
+		console.log("openIDConfig",openIDConfig);
 		this.getPackageName((packagename)=>{
-			console.debug("packagename",packagename);
+			console.log("packagename",packagename);
 			let params = {
 				grant_type: 'authorization_code',
 				code: authCode,
 				redirect_uri: redirect_uri.replace(/\*/g, packagename),
 				client_id: client_id
 			};
-			console.debug("params",params);
+			console.log("params",params);
 			this.makeRequest(openIDConfig.token_endpoint,params,'POST')
 			.then(tokens => {
-				let data = typeof tokens==='string'?JSON.parse(tokens):tokens;
-				console.debug("makeRequest",data);
 				exec(()=>{
-					this.saveData('state',data);
+					this.saveData('state',tokens);
 					success(tokens);	
-				}, fkterror, PLUGIN_NAME, 'createAccount', [data]);
+				}, fkterror, PLUGIN_NAME, 'createAccount', [tokens]);
 			})
 			.catch(error => {
 				console.error('Error obtaining tokens:', error);
@@ -310,12 +318,10 @@ var oidc = {
 		if (!openIDConfig)
 		{
 			this.getOIDCConfigFromIssuer(issuer,(config)=>{
-				openIDConfig = typeof config==='string'?JSON.parse(config):config;
+				openIDConfig = this.convertToObject(config);
 				this.makeRequest(openIDConfig.token_endpoint,params,'POST')
 				.then(tokens => {
-					console.log('Obtained tokens:', tokens);
-					let data = typeof tokens==='string'?JSON.parse(tokens):tokens;
-					this.mergeData(data);
+					this.mergeData(tokens);
 					success(tokens);
 				})
 				.catch(error => {
@@ -329,9 +335,7 @@ var oidc = {
 		{
 			this.makeRequest(openIDConfig.token_endpoint,params,'POST')
 			.then(tokens => {
-				console.log('Obtained tokens:', tokens);
-				let data = typeof tokens==='string'?JSON.parse(tokens):tokens;
-				this.mergeData(data);
+				this.mergeData(tokens);
 				success(tokens);
 			})
 			.catch(error => {
@@ -349,9 +353,7 @@ var oidc = {
 		  
 		this.makeRequest(url,params,'GET',{})
 		.then(config => {
-			let data = typeof config==='string'?JSON.parse(config):config;
-			this.setOIDCConfigLocal(data);
-			success(data);
+			success(config);
 		})
 		.catch(error => {
 			console.error('Error obtaining config:', error);
@@ -359,50 +361,73 @@ var oidc = {
 			fkterror(error);
 		});
 	},
+	convertToObject: function(data) {
+		while (typeof data==='string')
+		{
+			data = JSON.parse(data);
+		}
+		
+		return data;
+	},
 	makeRequest: function(endpoint, params, method, headers) {
-	  return new Promise(async (resolve, reject) => {
-		for (let retry = 0; retry < this.maxRetries; retry++) {
-		  try {
-			  
-			let options = method.toUpperCase()==='POST' ? {
-			  method: method,
-			  headers: headers?headers:{
-				'Content-Type': 'application/x-www-form-urlencoded',
-			  },
-			  body: new URLSearchParams(params),
-			}: {
-			  method: method
+		
+	/*
+		{
+			"body": string,
+			"method": string,
+			"headers": [{"key":"bla","value": "keks"},... ],
+			"endpoint: string "url.....",
+			"timeout: 10000
+		}
+	*/
+		
+		return new Promise((resolve,reject)=>{
+			let retryCount = 0;
+			 
+			let request_params = {
+				body: (new URLSearchParams(params)).toString(),
+				method: method,
+				endpoint: method.toUpperCase()==='POST' ? endpoint : `${endpoint}?${new URLSearchParams(params)}`,
+				headers: headers && Object.keys(headers).length > 0 ? headers : [{
+					key: 'Content-Type', value: 'application/x-www-form-urlencoded'
+				}],
+				timeout: params.timeout?params.timeout:this.timeout
 			};
 			
-			endpoint=method.toUpperCase()==='POST' ? endpoint : `${endpoint}?${new URLSearchParams(params)}`;
+			const makeRequestWithRetry = ()=>{
+				exec(
+				(result)=>{
+					let res = this.convertToObject(result);
+					console.log('RESULT: ',res.status);
+					resolve(this.convertToObject(res.result));
+				},
+				(error)=>{
+					let errorjson = this.convertToObject(error);
+					if (errorjson.status>=500&&errorjson.status<=500||errorjson.status===-1)
+					{
+						if (retryCount < this.maxRetries) 
+						{
+							// Wiederhole den Aufruf bis zu 3 Mal
+							retryCount++;
+							setTimeout(()=>{
+								makeRequestWithRetry();
+							}, this.retryDelay);
+							
+						} 
+						else 
+						{
+							reject(new Error('Failed to receive data after maximum retries'));
+						}
+					}
+					else 
+					{
+						reject(new Error(error));
+					}
+				},PLUGIN_NAME,'makeRequest',[request_params]);
+			};
 			
-			const fetchPromise = fetch(endpoint, options);
-
-			const timeoutPromise = new Promise((_, reject) =>
-			  setTimeout(() => reject(new Error('Request timeout')), this.timeout)
-			);
-
-			const response = await Promise.race([fetchPromise, timeoutPromise]);
-
-			if (response.ok) {
-			  const data = await response.json();
-			  resolve(data);
-			  return;
-			} else if (response.status >= 400 && response.status <= 499) {
-			  throw new Error(`Failed to receive data - Code: ${response.status} Message: ${response.statusText}`);
-			}
-		  } catch (error) {
-			console.error(`Error in attempt ${retry + 1}: ${JSON.stringify(error)}`);
-		  }
-
-		  if (retry < this.maxRetries - 1) {
-			// Wait for the specified delay before retrying
-			await new Promise(resolve => setTimeout(resolve, this.retryDelay));
-		  }
-		}
-
-		reject(new Error('Failed to receive data after maximum retries'));
-	  });
+			makeRequestWithRetry();
+		});
 	},
 	refreshNotification: function (success, error) {
 		exec(success, error, PLUGIN_NAME, 'refreshNotification', []);
