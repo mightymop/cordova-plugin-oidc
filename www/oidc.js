@@ -36,7 +36,13 @@ var oidc = {
 			const code = params.get('code');
 			
 			if (code) {
-				this.performTokenRequest(code, param.client_id, param.redirect_uri, success, error);
+				this.getOIDCConfig((config)=>{
+					this.performTokenRequest(code, param.client_id, param.redirect_uri, success, error,config);
+				},
+				()=>{
+					this.performTokenRequest(code, param.client_id, param.redirect_uri, success, error);	
+				});
+				
 			} else {
 				console.log('Der "code"-Parameter wurde nicht gefunden.');
 				error('Der "code"-Parameter wurde nicht gefunden.');
@@ -200,10 +206,19 @@ var oidc = {
 				this.getConnectionConfig((res)=>{
 					let data = this.convertToObject(state);
 					let config = this.convertToObject(res);
-					this.performRefreshRequest(config.issuer,config.client_id, config.scope, data.refresh_token, (res2)=>{
-						let result = this.convertToObject(res2);
-						success(result.access_token);
-					}, error);	
+					this.getOIDCConfig((openidconfig)=>{
+						this.performRefreshRequest(config.issuer,config.client_id, config.scope, data.refresh_token, (res2)=>{
+							let result = this.convertToObject(res2);
+							success(result.access_token);
+						}, error,openidconfig);	
+					},
+					()=>{
+						this.performRefreshRequest(config.issuer,config.client_id, config.scope, data.refresh_token, (res2)=>{
+							let result = this.convertToObject(res2);
+							success(result.access_token);
+						}, error);	
+					});
+					
 				}, error); 		
 			});
 				
@@ -324,6 +339,7 @@ var oidc = {
 		{
 			this.getOIDCConfigFromIssuer(issuer,(config)=>{
 				openIDConfig = this.convertToObject(config);
+				
 				this.makeRequest(openIDConfig.token_endpoint,params,'POST')
 				.then(tokens => {
 					this.mergeData(tokens);
@@ -358,6 +374,7 @@ var oidc = {
 		  
 		this.makeRequest(url,params,'GET',{})
 		.then(config => {
+			this.setOIDCConfigLocal(openIDConfig);
 			success(config);
 		})
 		.catch(error => {
