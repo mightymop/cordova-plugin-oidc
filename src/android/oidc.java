@@ -22,6 +22,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class oidc extends CordovaPlugin {
@@ -33,6 +34,10 @@ public class oidc extends CordovaPlugin {
   private CallbackContext _accountListenerCallbackContext;
   private CallbackContext _loginLogoutCallbackContext;
   private OnAccountsUpdateListener listener;
+
+  private ArrayList<Intent> _listNotificationIntents = new ArrayList<>();
+
+  private boolean isInBackground = false;
 
   @Override
   public void onDestroy() {
@@ -127,11 +132,45 @@ public class oidc extends CordovaPlugin {
         }
       }
 
-      cordova.getContext().startService(intent);
+      if (!this.isAppInBackground()) {
+        cordova.getContext().startService(intent);
+      }
+      else
+      {
+        this._listNotificationIntents.add(intent);
+      }
 
     } catch (Exception e) {
       Log.e(oidc.class.getSimpleName(), e.getMessage(),e);
     }
+  }
+
+  @Override
+  public void onResume(boolean multitasking) {
+    super.onResume(multitasking);
+    isInBackground = false;
+    while (this._listNotificationIntents.size()>0)
+    {
+      Intent first = this._listNotificationIntents.get(0);
+      this._listNotificationIntents.remove(0);
+      try {
+        cordova.getContext().startService(first);
+      }
+      catch (Exception e)
+      {
+
+      }
+    }
+  }
+
+  @Override
+  public void onPause(boolean multitasking) {
+    super.onPause(multitasking);
+    isInBackground = true;
+  }
+
+  public boolean isAppInBackground() {
+    return isInBackground;
   }
 
   public void registerAuthChangeHandler() {
