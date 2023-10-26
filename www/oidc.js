@@ -172,12 +172,14 @@ var oidc = {
 	},
 	mergeData: function(refreshedData) {
 		this.getData('state',(state)=>{
+			
 			state.access_token = refreshedData.access_token;
 			state.expires_in = refreshedData.expires_in;
 			state.id_token = refreshedData.id_token;
 			state.scope = refreshedData.scope?refreshedData.scope:state.scope;
 			state.refresh_token = refreshedData.refresh_token?refreshedData.refresh_token:state.refresh_token;
 			state.refresh_token_expires_in = refreshedData.refresh_token_expires_in?refreshedData.refresh_token_expires_in:state.refresh_token_expires_in;
+			
 			this.saveData('state',state);
 		},(err)=>{
 			console.error(err);
@@ -431,6 +433,9 @@ var oidc = {
 	},
 	refreshNotification: function (success, error) {
 		exec(success, error, PLUGIN_NAME, 'refreshNotification', []);
+	},
+	registerAccountListener: function (success,error) {
+		exec(success, error, PLUGIN_NAME, 'registerAccountListener', []);
 	}
 
 };
