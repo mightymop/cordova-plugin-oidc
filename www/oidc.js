@@ -146,6 +146,7 @@ var oidc = {
 	useSessionStorage: function() {
 		this.getData('state',(data)=>{
 			this.clearStorage();
+			data = this.convertToObject(data);
 			this.storage = sessionStorage;
 			this.saveData('state',data);
 		},(err)=>{
@@ -155,6 +156,7 @@ var oidc = {
 	useLocalStorage: function() {
 		this.getData('state',(data)=>{
 			this.clearStorage();
+			data = this.convertToObject(data);
 			this.storage = localStorage;
 			this.saveData('state',data);
 		},(err)=>{
@@ -164,6 +166,7 @@ var oidc = {
 	useAccountStorage: function() {
 		this.getData('state',(data)=>{
 			this.clearStorage();
+			data = this.convertToObject(data);
 			this.storage = this.accountStorage;
 			this.saveData('state',data);
 		},(err)=>{
@@ -172,15 +175,15 @@ var oidc = {
 	},
 	mergeData: function(refreshedData) {
 		this.getData('state',(state)=>{
+			let local = this.convertToObject(state);
+			local.access_token = refreshedData.access_token;
+			local.expires_in = refreshedData.expires_in;
+			local.id_token = refreshedData.id_token;
+			local.scope = refreshedData.scope?refreshedData.scope:local.scope;
+			local.refresh_token = refreshedData.refresh_token?refreshedData.refresh_token:local.refresh_token;
+			local.refresh_token_expires_in = refreshedData.refresh_token_expires_in?refreshedData.refresh_token_expires_in:local.refresh_token_expires_in;
 			
-			state.access_token = refreshedData.access_token;
-			state.expires_in = refreshedData.expires_in;
-			state.id_token = refreshedData.id_token;
-			state.scope = refreshedData.scope?refreshedData.scope:state.scope;
-			state.refresh_token = refreshedData.refresh_token?refreshedData.refresh_token:state.refresh_token;
-			state.refresh_token_expires_in = refreshedData.refresh_token_expires_in?refreshedData.refresh_token_expires_in:state.refresh_token_expires_in;
-			
-			this.saveData('state',state);
+			this.saveData('state',local);
 		},(err)=>{
 			console.error(err);
 		});	
