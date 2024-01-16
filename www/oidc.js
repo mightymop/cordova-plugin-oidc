@@ -195,6 +195,13 @@ var oidc = {
 		});	
 	},
 	getAccessToken: function(success,error) {
+		let test = true;
+		if (!test)
+		{
+			error("Abbruch durch DEBUG Variable");
+			return;
+		}
+		
 		this.getData('state',(state)=>{
 			
 			this.hasValidAccessToken(()=>{
@@ -223,7 +230,7 @@ var oidc = {
 			});
 				
 		},(err)=>{
-			console.error(err);
+			console.warn(err);
 			error('Nutzer nicht angemeldet!');
 		});	
 	},
@@ -241,7 +248,7 @@ var oidc = {
 				error('Nutzer nicht angemeldet!');
 			}
 		},(err)=>{
-			console.error(err);
+			console.warn(err);
 			error('Nutzer nicht angemeldet!');
 		});	
 	},
