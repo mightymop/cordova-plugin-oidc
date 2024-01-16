@@ -195,10 +195,11 @@ var oidc = {
 		});	
 	},
 	getAccessToken: function(success,error) {
-		let test = true;
-		if (!test)
+		let debugstop = true;
+		console.debug(`getAccessToken DEBUGSTOP = ${!debugstop}`);
+		if (debugstop!==true)
 		{
-			error("Abbruch durch DEBUG Variable");
+			error("Abbruch von getAccessToken() durch DEBUGSTOP Variable");
 			return;
 		}
 		
