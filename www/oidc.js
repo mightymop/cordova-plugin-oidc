@@ -4,7 +4,7 @@ var PLUGIN_NAME = 'oidc';
 var oidc = {
 	maxRetries : 3, 
 	retryDelay : 1000,
-	clockskrew: 30,
+	clockskew: 30,
 	timeout: 10000,
 	accountStorage: {
 		getItem:function(key,success,error) {
@@ -194,7 +194,7 @@ var oidc = {
 			console.error(err);
 		});	
 	},
-	getAccessToken: function(success,error) {
+	getAccessToken: function(success,error,timeout) {
 		let debugstop = true;
 		console.debug(`getAccessToken DEBUGSTOP = ${!debugstop}`);
 		if (debugstop!==true)
@@ -213,13 +213,13 @@ var oidc = {
 					let data = this.convertToObject(state);
 					let config = this.convertToObject(res);
 					this.getOIDCConfig((openidconfig)=>{
-						this.performRefreshRequest(config.issuer,config.client_id, config.scope, data.refresh_token, (res2)=>{
+						this.performRefreshRequest(timeout,config.issuer,config.client_id, config.scope, data.refresh_token, (res2)=>{
 							let result = this.convertToObject(res2);
 							success(result.access_token);
 						}, error,openidconfig);	
 					},
 					()=>{
-						this.performRefreshRequest(config.issuer,config.client_id, config.scope, data.refresh_token, (res2)=>{
+						this.performRefreshRequest(timeout,config.issuer,config.client_id, config.scope, data.refresh_token, (res2)=>{
 							let result = this.convertToObject(res2);
 							success(result.access_token);
 						}, error);	
@@ -252,60 +252,65 @@ var oidc = {
 			error('Nutzer nicht angemeldet!');
 		});	
 	},
-	hasValidAccessToken: function(success,error, state) {
-		
-		if (!state)
-		{
-			this.getData('state',(state)=>{
-				this.hasValidAccessToken(success,error,state);
-			},(err)=>{
+	hasValidAccessToken: function (success, error, state) {
+		const ERROR_INVALID_TOKEN = 'Ungültiges Token';
+		const ERROR_PARTS_COUNT = `${ERROR_INVALID_TOKEN}: Falsche Anzahl von Teilen`;
+		const ERROR_MISSING_INFO = `${ERROR_INVALID_TOKEN}: Fehlende Informationen im Payload`;
+		const ERROR_NOT_VALID_YET = 'Token ist noch nicht gültig (nbf ist in der Zukunft)';
+		const ERROR_EXPIRED = 'Token ist abgelaufen (exp ist in der Vergangenheit)';
+		const ERROR_DECODING = 'Fehler beim Decodieren oder Validieren';
+		const ERROR_USER_NOT_LOGGED_IN = 'Nutzer nicht angemeldet!';
+	
+		if (state === undefined || state === false || state === '') {
+			this.getData('state', (retrievedState) => {
+				this.hasValidAccessToken(success, error, retrievedState);
+			}, (err) => {
 				console.error(`getData - Fehler: ${JSON.stringify(err)}`);
-				error('Nutzer nicht angemeldet!');
+				error(ERROR_USER_NOT_LOGGED_IN);
 			});
-
+	
 			return;
 		}
-		
+	
 		const currentTime = Math.floor(Date.now() / 1000);
-
-		let local = this.convertToObject(state);
+		state = typeof state ==='object' ? state: JSON.parse(state);
+		
 		try {
-		// Das JWT Access Token besteht aus drei Teilen: Header.Payload.Signature
-			const parts = local.access_token.split('.');
+			// Das JWT Access Token besteht aus drei Teilen: Header.Payload.Signature
+			const parts = state.access_token.split('.');
 			if (parts.length !== 3) {
-				console.error('Ungültiges Token!');
-				error('Ungültiges Token');
+				console.error(ERROR_PARTS_COUNT);
+				error(ERROR_PARTS_COUNT);
 				return;
 			}
-
+	
 			// Den Payload-Teil decodieren
 			const payload = JSON.parse(this.base64UrlDecode(parts[1]));
-
+	
 			if (!payload || !payload.exp || !payload.nbf) {
-				console.error('Ungültiges Token!');
-				error('Ungültiges Token');
+				console.error(ERROR_MISSING_INFO);
+				error(ERROR_MISSING_INFO);
 				return;
 			}
-
+	
 			// Überprüfen, ob das Token bereits gültig ist
 			if (currentTime < payload.nbf) {
-				console.error('Token ist noch nicht gültig (nbf ist in der Zukunft)');
-				error('Token ist noch nicht gültig (nbf ist in der Zukunft)');
-				return;  
+				console.error(ERROR_NOT_VALID_YET);
+				error(ERROR_NOT_VALID_YET);
+				return;
 			}
-
+	
 			// Überprüfen, ob das Token abgelaufen ist
-			if (currentTime + this.clockskrew > payload.exp) {
-				console.error('Token ist abgelaufen (exp ist in der Vergangenheit)');
-				error('Token ist abgelaufen (exp ist in der Vergangenheit)');
-				return;  
+			if (currentTime + this.clockskew > payload.exp) {
+				console.error(ERROR_EXPIRED);
+				error(ERROR_EXPIRED);
+				return;
 			}
-
+	
 			success();
 		} catch (err) {
 			console.error('Error decoding or validating Access Token:', err);
-			error('Fehler beim Decodieren oder Validieren');
-			return;  
+			error(ERROR_DECODING);
 		}
 	},
 	base64UrlDecode: function (base64Url) {
@@ -344,12 +349,13 @@ var oidc = {
 			fkterror(err);
 		});	
 	},
-	performRefreshRequest: function(issuer, client_id, scope, refresh_token, success, fkterror,config) {
+	performRefreshRequest: function(timeout, issuer, client_id, scope, refresh_token, success, fkterror,config) {
 		let params = {
 			grant_type: 'refresh_token',
 			client_id: client_id,
 			refresh_token: refresh_token,
-			scope: scope
+			scope: scope,
+			timeout: timeout?timeout:this.timeout
 		  };
 			  
 		let openIDConfig = config?config:this.getOIDCConfigLocal();
@@ -410,8 +416,7 @@ var oidc = {
 		return data;
 	},
 	makeRequest: function(endpoint, params, method, headers) {
-		
-	/*
+		/*
 		{
 			"body": string,
 			"method": string,
@@ -419,19 +424,21 @@ var oidc = {
 			"endpoint: string "url.....",
 			"timeout: 10000
 		}
-	*/
-		
+		*/
+	
 		return new Promise((resolve,reject)=>{
 			let retryCount = 0;
-			 
+	
+			let formattedEndpoint = method.toUpperCase() === 'POST' ? endpoint : `${endpoint}?${new URLSearchParams(params)}`;
+			
 			let request_params = {
 				body: (new URLSearchParams(params)).toString(),
 				method: method,
-				endpoint: method.toUpperCase()==='POST' ? endpoint : `${endpoint}?${new URLSearchParams(params)}`,
+				endpoint: formattedEndpoint,
 				headers: headers && Object.keys(headers).length > 0 ? headers : [{
 					key: 'Content-Type', value: 'application/x-www-form-urlencoded'
 				}],
-				timeout: params.timeout?params.timeout:this.timeout
+				timeout: params.timeout ? params.timeout : this.timeout
 			};
 			
 			const makeRequestWithRetry = ()=>{
@@ -443,27 +450,21 @@ var oidc = {
 				},
 				(error)=>{
 					let errorjson = this.convertToObject(error);
-					if (errorjson.status>=500&&errorjson.status<=500||errorjson.status===-1)
-					{
-						if (retryCount < this.maxRetries) 
-						{
+					if (errorjson.status >= 500 && errorjson.status <= 500 || errorjson.status === -1) {
+						if (retryCount < this.maxRetries) {
 							// Wiederhole den Aufruf bis zu 3 Mal
 							retryCount++;
 							setTimeout(()=>{
 								makeRequestWithRetry();
 							}, this.retryDelay);
 							
-						} 
-						else 
-						{
+						} else {
 							reject(new Error('Failed to receive data after maximum retries'));
 						}
-					}
-					else 
-					{
+					} else {
 						reject(new Error(error));
 					}
-				},PLUGIN_NAME,'makeRequest',[request_params]);
+				}, PLUGIN_NAME,'makeRequest',[request_params]);
 			};
 			
 			makeRequestWithRetry();
