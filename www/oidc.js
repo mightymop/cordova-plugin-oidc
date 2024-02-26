@@ -204,13 +204,11 @@ var oidc = {
 		}
 		
 		this.getData('state',(state)=>{
-			
 			this.hasValidAccessToken(()=>{
 				let local = this.convertToObject(state);
 				success(local.access_token);
 				return;
 			},()=>{
-				
 				this.getConnectionConfig((res)=>{
 					let data = this.convertToObject(state);
 					let config = this.convertToObject(res);
@@ -228,12 +226,13 @@ var oidc = {
 					});
 					
 				}, error); 		
-			});
-				
+			},state);
+			
 		},(err)=>{
-			console.warn(err);
+			console.error(`Fehler beim Aufruf von getState()... ${JSON.stringify(err)}`);
 			error('Nutzer nicht angemeldet!');
 		});	
+		
 	},
 	getIDToken: function(success,error) {
 		this.getData('state',(state)=>{
@@ -253,50 +252,61 @@ var oidc = {
 			error('Nutzer nicht angemeldet!');
 		});	
 	},
-	hasValidAccessToken: function(success,error) {
-		this.getData('state',(state)=>{
-			const currentTime = Math.floor(Date.now() / 1000);
+	hasValidAccessToken: function(success,error, state) {
+		
+		if (!state)
+		{
+			this.getData('state',(state)=>{
+				this.hasValidAccessToken(success,error,state);
+			},(err)=>{
+				console.error(`getData - Fehler: ${JSON.stringify(err)}`);
+				error('Nutzer nicht angemeldet!');
+			});
 
-			let local = this.convertToObject(state);
-			try {
-			// Das JWT Access Token besteht aus drei Teilen: Header.Payload.Signature
-				const parts = local.access_token.split('.');
-				if (parts.length !== 3) {
-				  error('Ungültiges Token');
-				  return;
-				}
+			return;
+		}
+		
+		const currentTime = Math.floor(Date.now() / 1000);
 
-				// Den Payload-Teil decodieren
-				const payload = JSON.parse(this.base64UrlDecode(parts[1]));
+		let local = this.convertToObject(state);
+		try {
+		// Das JWT Access Token besteht aus drei Teilen: Header.Payload.Signature
+			const parts = local.access_token.split('.');
+			if (parts.length !== 3) {
+				console.error('Ungültiges Token!');
+				error('Ungültiges Token');
+				return;
+			}
 
-				if (!payload || !payload.exp || !payload.nbf) {
-				  error('Ungültiges Token');
-				  return;
-				}
+			// Den Payload-Teil decodieren
+			const payload = JSON.parse(this.base64UrlDecode(parts[1]));
 
-				// Überprüfen, ob das Token bereits gültig ist
-				if (currentTime < payload.nbf) {
-					error('Token ist noch nicht gültig (nbf ist in der Zukunft)');
-					return;  
-				}
+			if (!payload || !payload.exp || !payload.nbf) {
+				console.error('Ungültiges Token!');
+				error('Ungültiges Token');
+				return;
+			}
 
-				// Überprüfen, ob das Token abgelaufen ist
-				if (currentTime + this.clockskrew > payload.exp) {
-					error('Token ist abgelaufen (exp ist in der Vergangenheit)');
-					return;  
-				}
-
-				success();
-			} catch (err) {
-				console.error('Error decoding or validating Access Token:', err);
-				error('Fehler beim Decodieren oder Validieren');
+			// Überprüfen, ob das Token bereits gültig ist
+			if (currentTime < payload.nbf) {
+				console.error('Token ist noch nicht gültig (nbf ist in der Zukunft)');
+				error('Token ist noch nicht gültig (nbf ist in der Zukunft)');
 				return;  
 			}
-			
-		},(err)=>{
-			console.error(err);
-			error('Nutzer nicht angemeldet!');
-		});	
+
+			// Überprüfen, ob das Token abgelaufen ist
+			if (currentTime + this.clockskrew > payload.exp) {
+				console.error('Token ist abgelaufen (exp ist in der Vergangenheit)');
+				error('Token ist abgelaufen (exp ist in der Vergangenheit)');
+				return;  
+			}
+
+			success();
+		} catch (err) {
+			console.error('Error decoding or validating Access Token:', err);
+			error('Fehler beim Decodieren oder Validieren');
+			return;  
+		}
 	},
 	base64UrlDecode: function (base64Url) {
 	  // Padding entfernen und Zeichen ersetzen, um base64-dekodierbar zu sein
