@@ -183,11 +183,11 @@ var oidc = {
 		this.getData('state',(state)=>{
 			let local = this.convertToObject(state);
 			local.access_token = refreshedData.access_token;
-			local.expires_in = refreshedData.expires_in;
+			local.expirese = refreshedData.expirese;
 			local.id_token = refreshedData.id_token;
 			local.scope = refreshedData.scope?refreshedData.scope:local.scope;
 			local.refresh_token = refreshedData.refresh_token?refreshedData.refresh_token:local.refresh_token;
-			local.refresh_token_expires_in = refreshedData.refresh_token_expires_in?refreshedData.refresh_token_expires_in:local.refresh_token_expires_in;
+			local.refresh_token_expirese = refreshedData.refresh_token_expirese?refreshedData.refresh_token_expirese:local.refresh_token_expirese;
 			
 			this.saveData('state',local);
 		},(err)=>{
@@ -259,14 +259,14 @@ var oidc = {
 		const ERROR_NOT_VALID_YET = 'Token ist noch nicht gültig (nbf ist in der Zukunft)';
 		const ERROR_EXPIRED = 'Token ist abgelaufen (exp ist in der Vergangenheit)';
 		const ERROR_DECODING = 'Fehler beim Decodieren oder Validieren';
-		const ERROR_USER_NOT_LOGGED_IN = 'Nutzer nicht angemeldet!';
+		const ERROR_USER_NOT_LOGGED = 'Nutzer nicht angemeldet!';
 	
 		if (state === undefined || state === false || state === '') {
 			this.getData('state', (retrievedState) => {
 				this.hasValidAccessToken(success, error, retrievedState);
 			}, (err) => {
 				console.error(`getData - Fehler: ${JSON.stringify(err)}`);
-				error(ERROR_USER_NOT_LOGGED_IN);
+				error(ERROR_USER_NOT_LOGGED);
 			});
 	
 			return;
@@ -339,6 +339,17 @@ var oidc = {
 				exec(()=>{
 					this.saveData('state',tokens);
 					success(tokens);	
+					
+					this.scheduleTokenRefresh(tokens.access_token, () => {
+					  console.log('Refreshing access token...');
+					  
+					  this.performRefreshRequest(timeout     , config.issuer, config.client_id, config.scope, tokens.refresh_token, (success)=>{
+						console.log("token refreshed");
+					  }, (err)=>{
+						console.error("error while tokenrefresh",err);
+					  }, config);
+					});
+					
 				}, fkterror, PLUGIN_NAME, 'createAccount', [tokens]);
 			})
 			.catch(error => {
@@ -368,6 +379,16 @@ var oidc = {
 				.then(tokens => {
 					this.mergeData(tokens);
 					success(tokens);
+					
+					this.scheduleTokenRefresh(tokens.access_token, () => {
+					  console.log('Refreshing access token...');
+					  
+					  this.performRefreshRequest(timeout     , config.issuer, config.client_id, config.scope, tokens.refresh_token, (success)=>{
+						console.log("token refreshed");
+					  }, (err)=>{
+						console.error("error while tokenrefresh",err);
+					  }, config);
+					});
 				})
 				.catch(error => {
 					console.error('Error obtaining tokens:', error);
@@ -382,6 +403,16 @@ var oidc = {
 			.then(tokens => {
 				this.mergeData(tokens);
 				success(tokens);
+				
+				this.scheduleTokenRefresh(tokens.access_token, () => {
+					  console.log('Refreshing access token...');
+					  
+					  this.performRefreshRequest(timeout     , config.issuer, config.client_id, config.scope, tokens.refresh_token, (success)=>{
+						console.log("token refreshed");
+					  }, (err)=>{
+						console.error("error while tokenrefresh",err);
+					  }, config);
+				});
 			})
 			.catch(error => {
 				console.error('Error obtaining tokens:', error);
@@ -475,6 +506,37 @@ var oidc = {
 	},
 	registerAccountListener: function (success,error) {
 		exec(success, error, PLUGIN_NAME, 'registerAccountListener', []);
+	},
+	scheduleTokenRefresh: function(access_token, refreshFunction) {
+		try 
+		{
+			const decodedToken = this.decodeAccessToken(access_token);
+			const expirationTime = decodedToken.exp * 1000; // Multipliziere mit 1000, um Millisekunden zu erhalten
+			const refreshThreshold = expirationTime - 120 * 1000; // 120 Sekunden vor Ablauf
+			const currentTime = Date.now();
+
+			if (refreshThreshold > currentTime) {
+			  const delay = refreshThreshold - currentTime;
+			  console.log(`Scheduled token refresh in ${delay / 1000} seconds.`);
+
+			  setTimeout(() => {
+				// Starte den Aktualisierungsvorgang
+				refreshFunction();
+			  }, delay);
+			}
+		} catch (error) {
+			console.error('Error decoding access token:', error);
+		}
+	},
+	decodeAccessToken: function(access_token) {
+	  try {
+		const parts = access_token.split('.');
+		const payload = JSON.parse(this.base64UrlDecode(parts[1]));
+		return payload;
+	  } catch (error) {
+		console.error('Error decoding access token:', error);
+		throw error;
+	  }
 	}
 
 };
