@@ -429,7 +429,7 @@ var oidc = {
 		  
 		this.makeRequest(url,params,'GET',{})
 		.then(config => {
-			this.setOIDCConfigLocal(openIDConfig);
+			this.setOIDCConfigLocal(config);
 			success(config);
 		})
 		.catch(error => {
