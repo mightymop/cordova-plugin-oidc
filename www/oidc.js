@@ -438,6 +438,9 @@ var oidc = {
 			fkterror(error);
 		});
 	},
+	removeAccount: function(success,error) {
+		exec(success,error,PLUGIN_NAME,'removeAccount',[]);
+	},
 	convertToObject: function(data) {
 		while (typeof data==='string')
 		{
