@@ -293,7 +293,7 @@ public class oidc extends CordovaPlugin {
     try {
       JSONObject json = data.getJSONObject(0);
       if (Utils.getAccount(cordova.getContext()) != null) {
-        removeAccount(callbackContext);
+        removeAccount(null);
       }
 
       String id_token = json.getString("id_token");
@@ -301,11 +301,17 @@ public class oidc extends CordovaPlugin {
 
       Utils.createAccount(cordova.getContext(), name, json.toString());
 
-      PluginResult result = new PluginResult(PluginResult.Status.OK);
-      callbackContext.sendPluginResult(result);
+      if (callbackContext!=null)
+      {
+        PluginResult result = new PluginResult(PluginResult.Status.OK);
+        callbackContext.sendPluginResult(result);
+      }      
     } catch (Exception e) {
-      PluginResult result = new PluginResult(PluginResult.Status.ERROR, e.getMessage());
-      callbackContext.sendPluginResult(result);
+      if (callbackContext!=null)
+      {
+        PluginResult result = new PluginResult(PluginResult.Status.ERROR, e.getMessage());
+        callbackContext.sendPluginResult(result);
+      }      
     }
   }
 
@@ -314,17 +320,26 @@ public class oidc extends CordovaPlugin {
     Log.d(oidc.class.getSimpleName(), "removeAccount");
     try {
       if (Utils.getAccount(cordova.getContext()) == null) {
-        PluginResult result = new PluginResult(PluginResult.Status.ERROR, "Account nicht vorhanden.");
-        callbackContext.sendPluginResult(result);
+        if (callbackContext!=null)
+        {
+          PluginResult result = new PluginResult(PluginResult.Status.ERROR, "Account nicht vorhanden.");
+          callbackContext.sendPluginResult(result);
+        }
       }
 
       Utils.removeAccount(cordova.getContext());
 
-      PluginResult result = new PluginResult(PluginResult.Status.OK);
-      callbackContext.sendPluginResult(result);
+      if (callbackContext!=null)
+      {
+        PluginResult result = new PluginResult(PluginResult.Status.OK);
+        callbackContext.sendPluginResult(result);
+      }
     } catch (Exception e) {
-      PluginResult result = new PluginResult(PluginResult.Status.ERROR, e.getMessage());
-      callbackContext.sendPluginResult(result);
+      if (callbackContext!=null)
+      {
+        PluginResult result = new PluginResult(PluginResult.Status.ERROR, e.getMessage());
+        callbackContext.sendPluginResult(result);
+      }
     }
   }
 
