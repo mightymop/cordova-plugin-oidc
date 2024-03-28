@@ -49,14 +49,20 @@ public class AuthManagerActivity extends AppCompatActivity {
   public void onCreate(Bundle savedInstanceBundle) {
     super.onCreate(savedInstanceBundle);
 
-    this.type=getIntent().getExtras()!=null&&
-              getIntent().hasExtra("type")&&
-              getIntent().getStringExtra("type").equalsIgnoreCase("logout") ?
-              FLOW_TYPE.LOGOUT :
-              (getIntent().getStringExtra("type").equalsIgnoreCase("login") ?   FLOW_TYPE.LOGIN : FLOW_TYPE.NOT_SET);
+    this.type=FLOW_TYPE.NOT_SET;
+
+    if (getIntent()!=null && getIntent().getExtras()!=null && getIntent().hasExtra("type"))
+    {
+        String type = getIntent().getExtras().getString("type",null);
+        if (type!=null)
+        {
+          this.type = type.equalsIgnoreCase("logout") ? FLOW_TYPE.LOGOUT : (type.equalsIgnoreCase("login")?FLOW_TYPE.LOGIN:FLOW_TYPE.NOT_SET);
+        }
+    }
 
     if (this.type == FLOW_TYPE.NOT_SET)
     {
+      Log.e("AuthManagerActivity","TYPE NOT SET!");
       setResult(Activity.RESULT_CANCELED,getErrorIntent(1,"type must be 'login' or 'logout'!"));
       finish();
       return;
