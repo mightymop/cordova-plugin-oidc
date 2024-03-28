@@ -7,6 +7,7 @@ var oidc = {
 	clockskew: 30,
 	debug: false,
 	timeout: 20000,
+	autologout: false,
 	refreshTimeout: undefined,
 	accountStorage: {
 		getItem: function (key, success, error) {
@@ -535,35 +536,38 @@ var oidc = {
 							let message = JSON.parse(errorjson.message);
 							if (message.error==='invalid_grant' && message.error_description.indexOf('has expired')!==-1)
 							{
-								let config = oidc.getOIDCConfigLocal();
-								this.getConnectionConfig(
-									(cfg) => {
-									  this.getData('state', 
-										(data) => {
-											let authState = typeof data === 'string' ? JSON.parse(data) : data;
-											cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
-											this.startLogoutFlow({
-											  post_logout_redirect_uri: cfg.redirect_uri,
-											  endpoint: config.end_session_endpoint,
-											  id_token_hint: authState.id_token
-											}, (res) => {
-											  console.log("startLogoutFlow",res);
-											  this.clearStorage();
-											
-											}, (err) => {
-											  console.error("startLogoutFlow",err);
-											  this.clearStorage();
+								if (this.autologout)
+								{
+									let config = oidc.getOIDCConfigLocal();
+									this.getConnectionConfig(
+										(cfg) => {
+										  this.getData('state', 
+											(data) => {
+												let authState = typeof data === 'string' ? JSON.parse(data) : data;
+												cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
+												this.startLogoutFlow({
+												  post_logout_redirect_uri: cfg.redirect_uri,
+												  endpoint: config.end_session_endpoint,
+												  id_token_hint: authState.id_token
+												}, (res) => {
+												  console.log("startLogoutFlow",res);
+												  this.clearStorage();
+												
+												}, (err) => {
+												  console.error("startLogoutFlow",err);
+												  this.clearStorage();
+												});
+											}, 
+											(error) => {
+												console.error(error);
+												return;
 											});
-										}, 
+										},
 										(error) => {
-											console.error(error);
-											return;
-										});
-									},
-									(error) => {
-									  console.error("getConnectionConfig",error);
-									}
-								);
+										  console.error("getConnectionConfig",error);
+										}
+									);
+								}
 								
 								reject(new Error('Session expired!'));
 							}
