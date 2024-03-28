@@ -5,6 +5,7 @@ import android.util.Log;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -77,8 +78,11 @@ public class HttpRequest {
 
     // Lese die Antwort
     int responseCode = connection.getResponseCode();
-    if (responseCode == HttpURLConnection.HTTP_OK) {
-      BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+
+    try
+    {
+      InputStream in = responseCode==HttpURLConnection.HTTP_OK ? connection.getInputStream(): connection.getErrorStream();
+      BufferedReader reader = new BufferedReader(new InputStreamReader(in));
       String line;
       StringBuilder response = new StringBuilder();
       while ((line = reader.readLine()) != null) {
@@ -89,7 +93,10 @@ public class HttpRequest {
       result.put("status", responseCode);
       result.put("result", response.toString());
       return result.toString();
-    } else {
+    }
+    catch (Exception ex)
+    {
+      Log.e("HTTPREQUEST",ex.getMessage(),ex);
       throw new Exception(Utils.getExceptionMessage(responseCode, connection.getResponseMessage()));
     }
   }

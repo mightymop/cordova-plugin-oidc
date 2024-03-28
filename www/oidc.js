@@ -524,12 +524,55 @@ var oidc = {
 						if (this.debug) {
 							console.log('RESULT: ', res.status);
 						}
+						
 						resolve(this.convertToObject(res.result));
 					},
 					(error) => {
 						let errorjson = this.convertToObject(error);
 						console.error(error);
-						if (errorjson.status >= 500 && errorjson.status <= 500 || errorjson.status === -1) {
+						if (errorjson.status >= 400 && errorjson.status <= 499) {
+							retryCount=this.maxRetries;
+							let message = JSON.parse(errorjson.message);
+							if (message.error==='invalid_grant' && message.error_description.indexOf('has expired')!==-1)
+							{
+								let config = oidc.getOIDCConfigLocal();
+								this.getConnectionConfig(
+									(cfg) => {
+									  this.getData('state', 
+										(data) => {
+											let authState = typeof data === 'string' ? JSON.parse(data) : data;
+											cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
+											this.startLogoutFlow({
+											  post_logout_redirect_uri: cfg.redirect_uri,
+											  endpoint: config.end_session_endpoint,
+											  id_token_hint: authState.id_token
+											}, (res) => {
+											  console.log("startLogoutFlow",res);
+											  this.clearStorage();
+											
+											}, (err) => {
+											  console.error("startLogoutFlow",err);
+											  this.clearStorage();
+											});
+										}, 
+										(error) => {
+											console.error(error);
+											return;
+										});
+									},
+									(error) => {
+									  console.error("getConnectionConfig",error);
+									}
+								);
+								
+								reject(new Error('Session expired!'));
+							}
+							else
+							{
+								reject(new Error(`${message.error}: ${message.error_description}`));
+							}
+						} else 
+						if (errorjson.status >= 500 && errorjson.status <= 599 || errorjson.status === -1) {
 							if (retryCount < this.maxRetries) {
 								// Wiederhole den Aufruf bis zu 3 Mal
 								retryCount++;

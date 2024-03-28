@@ -305,13 +305,13 @@ public class oidc extends CordovaPlugin {
       {
         PluginResult result = new PluginResult(PluginResult.Status.OK);
         callbackContext.sendPluginResult(result);
-      }      
+      }
     } catch (Exception e) {
       if (callbackContext!=null)
       {
         PluginResult result = new PluginResult(PluginResult.Status.ERROR, e.getMessage());
         callbackContext.sendPluginResult(result);
-      }      
+      }
     }
   }
 
@@ -395,7 +395,15 @@ public class oidc extends CordovaPlugin {
 
           String strjson = HttpRequest.sendHttpRequest(params.getString("endpoint"), params.getString("method"), body, timeout, headers);
 
-          callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, strjson));
+          JSONObject json  = new JSONObject(strjson);
+          if (json.getInt("status")==200)
+          {
+            callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, strjson));
+          }
+          else
+          {
+            callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, Utils.getExceptionMessage(json.getInt("status"),json.getString("result"))));
+          }
         } catch (IOException e2) {
           callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, Utils.getExceptionMessage(-1, e2.getMessage())));
         } catch (JSONException e1) {
