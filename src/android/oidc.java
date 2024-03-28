@@ -81,7 +81,17 @@ public class oidc extends CordovaPlugin {
           case REQUEST_LOGIN:
           case REQUEST_LOGOUT:
             Log.d(oidc.class.getSimpleName(), intent.getDataString());
-            _loginLogoutCallbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, intent.getDataString()));
+            if (_loginLogoutCallbackContext!=null) {
+              _loginLogoutCallbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, intent.getDataString()));
+            }
+            else
+            if (_defaultCallbackContext!=null) {
+              _defaultCallbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK, intent.getDataString()));
+            }
+            else
+            {
+              Log.e(oidc.class.getSimpleName(), "NO CALLBACK CONTEXT FOUNDN!!!");
+            }
             break;
 
           default:
