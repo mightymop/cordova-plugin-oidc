@@ -8,6 +8,7 @@ var oidc = {
 	debug: false,
 	timeout: 20000,
 	autologout: false,
+	autorelogin: false,
 	refreshTimeout: undefined,
 	accountStorage: {
 		getItem: function (key, success, error) {
@@ -532,12 +533,16 @@ var oidc = {
 						let errorjson = this.convertToObject(error);
 						console.error(error);
 						if (errorjson.status >= 400 && errorjson.status <= 499) {
-							retryCount=this.maxRetries;
+						
 							let message = JSON.parse(errorjson.message);
 							if (message.error==='invalid_grant' && message.error_description.indexOf('has expired')!==-1)
 							{
 								if (this.autologout)
 								{
+									retryCount=this.maxRetries;
+									this.clearStorage();
+									reject(new Error('Session expired!'));
+									
 									let config = oidc.getOIDCConfigLocal();
 									this.getConnectionConfig(
 										(cfg) => {
@@ -551,16 +556,12 @@ var oidc = {
 												  id_token_hint: authState.id_token
 												}, (res) => {
 												  console.log("startLogoutFlow",res);
-												  this.clearStorage();
-												
 												}, (err) => {
 												  console.error("startLogoutFlow",err);
-												  this.clearStorage();
 												});
 											}, 
 											(error) => {
 												console.error(error);
-												return;
 											});
 										},
 										(error) => {
@@ -568,8 +569,57 @@ var oidc = {
 										}
 									);
 								}
-								
-								reject(new Error('Session expired!'));
+								else
+								if (this.autorelogin)
+								{
+									let config = oidc.getOIDCConfigLocal();
+									this.getConnectionConfig(
+										(cfg) => {
+										  this.getData('state', 
+											(data) => {
+												let authState = typeof data === 'string' ? JSON.parse(data) : data;
+												cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
+												this.startLoginFlow({
+												  redirect_uri: cfg.redirect_uri,
+												  endpoint: config.authorization_endpoint,
+												  client_id: cfg.client_id,
+												  scope: cfg.scope,
+												  prompt: "true",
+								  
+												}, (res) => {
+													retryCount++;
+													setTimeout(() => {
+														makeRequestWithRetry();
+													}, this.retryDelay);
+												
+												}, (err) => {
+												  console.error(err);
+												  this.clearStorage();
+												  retryCount=this.maxRetries;
+												  reject(new Error('Session expired!'));
+												});
+											}, 
+											(error) => {
+												console.error(error);
+												this.clearStorage();
+												retryCount=this.maxRetries;
+												reject(new Error('Session expired!'));
+											});
+										},
+										(error) => {
+										  console.error("getConnectionConfig",error);
+										  this.clearStorage();
+										  retryCount=this.maxRetries;
+										  reject(new Error('Session expired!'));
+										}
+									);
+								}
+								else
+								{
+									retryCount=this.maxRetries;
+									this.clearStorage();
+									reject(new Error('Session expired!'));
+								}
 							}
 							else
 							{
