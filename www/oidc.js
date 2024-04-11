@@ -296,7 +296,7 @@ var oidc = {
 			}
 
 			// Überprüfen, ob das Token bereits gültig ist
-			if (currentTime < payload.nbf) {
+			if (currentTime < payload.nbf - this.clockskew ) {
 				console.error(ERROR_NOT_VALID_YET);
 				error(ERROR_NOT_VALID_YET);
 				return;
