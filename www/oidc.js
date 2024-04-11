@@ -555,7 +555,10 @@ var oidc = {
 												  endpoint: config.end_session_endpoint,
 												  id_token_hint: authState.id_token
 												}, (res) => {
-												  console.log("startLogoutFlow",res);
+													if (this.debug)
+													{
+														console.log("startLogoutFlow",res);
+													}
 												}, (err) => {
 												  console.error("startLogoutFlow",err);
 												});
