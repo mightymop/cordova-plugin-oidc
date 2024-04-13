@@ -182,13 +182,14 @@ var oidc = {
 	},
 	mergeData: function (refreshedData) {
 		this.getData('state', (state) => {
+		
 			let local = this.convertToObject(state);
 			local.access_token = refreshedData.access_token;
-			local.expirese = refreshedData.expirese;
+			local.expires_in = refreshedData.expires_in;
 			local.id_token = refreshedData.id_token;
 			local.scope = refreshedData.scope ? refreshedData.scope : local.scope;
 			local.refresh_token = refreshedData.refresh_token ? refreshedData.refresh_token : local.refresh_token;
-			local.refresh_token_expirese = refreshedData.refresh_token_expirese ? refreshedData.refresh_token_expirese : local.refresh_token_expirese;
+			local.refresh_token_expires_in = refreshedData.refresh_token_expires_in ? refreshedData.refresh_token_expires_in : local.refresh_token_expires_in;
 
 			this.saveData('state', local);
 		}, (err) => {
