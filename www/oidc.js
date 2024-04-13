@@ -521,8 +521,9 @@ var oidc = {
 			};
 
 			const makeRequestWithRetry = () => {
-				let testrelogin=false;
-				if (testrelogin)
+				var testrelogin=false;
+				console.debug(`testrelogin=${testrelogin}`);
+				if (testrelogin===true)
 				{
 					if (this.autologout)
 					{
@@ -599,8 +600,10 @@ var oidc = {
 						this.clearStorage();
 						reject(new Error('Session expired!'));
 					}
+					
 					return;				
-				}								
+				}
+				
 				exec(
 					(result) => {
 						let res = this.convertToObject(result);
