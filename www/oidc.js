@@ -520,6 +520,139 @@ var oidc = {
 			};
 
 			const makeRequestWithRetry = () => {
+				if (this.debug)
+				{
+					if (this.autologout)
+					{
+						retryCount=this.maxRetries;
+						this.clearStorage();
+						reject(new Error('Session expired!'));
+						
+						let config = oidc.getOIDCConfigLocal();
+						this.getConnectionConfig(
+							(cfg) => {
+							  this.getData('state', 
+								(data) => {
+									let authState = typeof data === 'string' ? JSON.parse(data) : data;
+									cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
+									this.startLogoutFlow({
+									  post_logout_redirect_uri: cfg.redirect_uri,
+									  endpoint: config.end_session_endpoint,
+									  id_token_hint: authState.id_token
+									}, (res) => {
+										if (this.debug)
+										{
+											console.log("startLogoutFlow",res);
+										}
+
+										setTimeout(()=>{
+
+											let config = oidc.getOIDCConfigLocal();
+											this.getConnectionConfig(
+												(cfg) => {
+												this.getData('state', 
+													(data) => {
+														let authState = typeof data === 'string' ? JSON.parse(data) : data;
+														cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
+														this.startLoginFlow({
+														redirect_uri: cfg.redirect_uri,
+														endpoint: config.authorization_endpoint,
+														client_id: cfg.client_id,
+														scope: cfg.scope,
+														prompt: "true",
+										
+														}, (res) => {
+															retryCount++;
+															setTimeout(() => {
+																makeRequestWithRetry();
+															}, this.retryDelay);
+														
+														}, (err) => {
+														console.error(err);
+														this.clearStorage();
+														retryCount=this.maxRetries;
+														reject(new Error('Session expired!'));
+														});
+													}, 
+													(error) => {
+														console.error(error);
+														this.clearStorage();
+														retryCount=this.maxRetries;
+														reject(new Error('Session expired!'));
+													});
+												},
+												(error) => {
+												console.error("getConnectionConfig",error);
+												this.clearStorage();
+												retryCount=this.maxRetries;
+												reject(new Error('Session expired!'));
+												}
+											);
+										},3000);
+										
+									}, (err) => {
+									  console.error("startLogoutFlow",err);
+									});
+								}, 
+								(error) => {
+									console.error(error);
+								});
+							},
+							(error) => {
+							  console.error("getConnectionConfig",error);
+							}
+						);
+					}
+					else
+					if (this.autorelogin)
+					{
+						let config = oidc.getOIDCConfigLocal();
+						this.getConnectionConfig(
+							(cfg) => {
+							  this.getData('state', 
+								(data) => {
+									let authState = typeof data === 'string' ? JSON.parse(data) : data;
+									cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
+									this.startLoginFlow({
+									  redirect_uri: cfg.redirect_uri,
+									  endpoint: config.authorization_endpoint,
+									  client_id: cfg.client_id,
+									  scope: cfg.scope,
+									  prompt: "true",
+					  
+									}, (res) => {
+										retryCount++;
+										resolve(this.convertToObject(res));
+									}, (err) => {
+									  console.error(err);
+									  this.clearStorage();
+									  retryCount=this.maxRetries;
+									  reject(new Error('Session expired!'));
+									});
+								}, 
+								(error) => {
+									console.error(error);
+									this.clearStorage();
+									retryCount=this.maxRetries;
+									reject(new Error('Session expired!'));
+								});
+							},
+							(error) => {
+							  console.error("getConnectionConfig",error);
+							  this.clearStorage();
+							  retryCount=this.maxRetries;
+							  reject(new Error('Session expired!'));
+							}
+						);
+					}
+					else
+					{
+						retryCount=this.maxRetries;
+						this.clearStorage();
+						reject(new Error('Session expired!'));
+					}
+					return;				
+				}								
 				exec(
 					(result) => {
 						let res = this.convertToObject(result);
