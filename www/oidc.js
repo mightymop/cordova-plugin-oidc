@@ -520,7 +520,8 @@ var oidc = {
 			};
 
 			const makeRequestWithRetry = () => {
-				if (this.debug)
+				let testrelogin=false;
+				if (testrelogin)
 				{
 					if (this.autologout)
 					{
