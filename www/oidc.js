@@ -537,42 +537,6 @@ var oidc = {
 							let message = JSON.parse(errorjson.message);
 							if (message.error==='invalid_grant' && message.error_description.indexOf('has expired')!==-1)
 							{
-								if (this.autologout&&this.autorelogin)
-								{
-									retryCount=this.maxRetries;
-									this.clearStorage();
-									reject(new Error('Session expired!'));
-									
-									let config = oidc.getOIDCConfigLocal();
-									this.getConnectionConfig(
-										(cfg) => {
-										  this.getData('state', 
-											(data) => {
-												let authState = typeof data === 'string' ? JSON.parse(data) : data;
-												cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
-												this.startLogoutFlow({
-												  post_logout_redirect_uri: cfg.redirect_uri,
-												  endpoint: config.end_session_endpoint,
-												  id_token_hint: authState.id_token
-												}, (res) => {
-													if (this.debug)
-													{
-														console.log("startLogoutFlow",res);
-													}
-												}, (err) => {
-												  console.error("startLogoutFlow",err);
-												});
-											}, 
-											(error) => {
-												console.error(error);
-											});
-										},
-										(error) => {
-										  console.error("getConnectionConfig",error);
-										}
-									);
-								}
-								else
 								if (this.autologout)
 								{
 									retryCount=this.maxRetries;
@@ -673,10 +637,7 @@ var oidc = {
 								  
 												}, (res) => {
 													retryCount++;
-													setTimeout(() => {
-														makeRequestWithRetry();
-													}, this.retryDelay);
-												
+													resolve(this.convertToObject(res));
 												}, (err) => {
 												  console.error(err);
 												  this.clearStorage();
