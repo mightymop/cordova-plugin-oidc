@@ -536,12 +536,15 @@ var oidc = {
 							(cfg) => {
 							  this.getData('state', 
 								(data) => {
-									let authState = typeof data === 'string' ? JSON.parse(data) : data;
+									let authState = null;
+									if (data!==null&&data!==undefined) {
+										authState = typeof data === 'string' ? JSON.parse(data) : data;
+									}
 									cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
 									this.startLogoutFlow({
 									  post_logout_redirect_uri: cfg.redirect_uri,
 									  endpoint: config.end_session_endpoint,
-									  id_token_hint: authState.id_token
+									  id_token_hint: authState!==null&&authState!==undefined&&authState!==''?authState.id_token:''
 									}, (res) => {
 										if (this.debug)
 										{
@@ -632,12 +635,15 @@ var oidc = {
 										(cfg) => {
 										  this.getData('state', 
 											(data) => {
-												let authState = typeof data === 'string' ? JSON.parse(data) : data;
+												let authState = null;
+												if (data!==null&&data!==undefined) {
+													authState = typeof data === 'string' ? JSON.parse(data) : data;
+												}
 												cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
 												this.startLogoutFlow({
 												  post_logout_redirect_uri: cfg.redirect_uri,
 												  endpoint: config.end_session_endpoint,
-												  id_token_hint: authState.id_token
+												  id_token_hint: authState!==null&&authState!==undefined&&authState!==''?authState.id_token:''
 												}, (res) => {
 													if (this.debug)
 													{
