@@ -425,6 +425,25 @@ public class oidc extends CordovaPlugin {
     });
   }
 
+  private void hasAccount(CallbackContext callbackContext) {
+
+    Log.d(oidc.class.getSimpleName(), "readData");
+    try {
+      if (Utils.getAccount(cordova.getContext()) == null) {
+        PluginResult result = new PluginResult(PluginResult.Status.OK, "{\"result\": false }");
+        callbackContext.sendPluginResult(result);
+      }
+      else
+      {
+        PluginResult result = new PluginResult(PluginResult.Status.OK, "{\"result\": true }");
+        callbackContext.sendPluginResult(result);
+      }
+    } catch (Exception e) {
+      PluginResult result = new PluginResult(PluginResult.Status.ERROR, e.getMessage());
+      callbackContext.sendPluginResult(result);
+    }
+  }
+
   private void readData(JSONArray data, CallbackContext callbackContext) {
 
     Log.d(oidc.class.getSimpleName(), "readData");
@@ -508,6 +527,10 @@ public class oidc extends CordovaPlugin {
 
       case "readData":
         readData(data,callbackContext);
+        break;
+
+      case "hasAccount":
+        hasAccount(callbackContext);
         break;
 
       case "clear":

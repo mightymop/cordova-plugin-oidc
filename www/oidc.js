@@ -97,25 +97,47 @@ var oidc = {
 			console.error('Error writing to storage:', error);
 		}
 	},
-	getData: function (key, success, error) {
+	hasAccount: function (success,error) {
 		try {
-			if (this.storage === sessionStorage || this.storage === localStorage) {
-				const value = this.storage.getItem(key);
-				if (value) {
-					success(JSON.parse(value));
-				}
-				else {
+			exec((result)=>{
+				var json = JSON.parse(result);
+				success(json.result);
+			}, error, PLUGIN_NAME, 'hasAccount', []);
+
+		} catch (err) {
+			console.error('Error writing to storage:', err);
+			error(err)
+		}
+	},
+	getData: function (key, success, error) {
+		this.hasAccount((result)=>{
+			if (result)
+			{
+				try {
+					if (this.storage === sessionStorage || this.storage === localStorage) {
+						const value = this.storage.getItem(key);
+						if (value) {
+							success(JSON.parse(value));
+						}
+						else {
+							error();
+						}
+					}
+					else {
+						this.accountStorage.getItem(key, success, error);
+					}
+
+				} catch (err) {
+					console.error('Error reading from storage:', err);
 					error();
 				}
 			}
-			else {
-				this.accountStorage.getItem(key, success, error);
-			}
-
-		} catch (err) {
-			console.error('Error reading from storage:', err);
-			error();
-		}
+			else
+			{
+				console.warn('Nutzer nicht angemeldet!');
+				error('Nutzer nicht angemeldet!');
+			}}
+		,error);
 	},
 	clearStorage: function () {
 		try {
@@ -206,54 +228,73 @@ var oidc = {
 			return;
 		}
 
-		this.getData('state', (state) => {
-			this.hasValidAccessToken(() => {
-				let local = this.convertToObject(state);
-				success(local.access_token);
-				return;
-			}, () => {
-				this.getConnectionConfig((res) => {
-					let data = this.convertToObject(state);
-					let config = this.convertToObject(res);
-					this.getOIDCConfig((openidconfig) => {
-						this.performRefreshRequest(timeout, config.issuer, config.client_id, config.scope, data.refresh_token, (res2) => {
-							let result = this.convertToObject(res2);
-							success(result.access_token);
-						}, error, openidconfig);
-					},
-						() => {
-							this.performRefreshRequest(timeout, config.issuer, config.client_id, config.scope, data.refresh_token, (res2) => {
-								let result = this.convertToObject(res2);
-								success(result.access_token);
-							}, error);
-						});
-
-				}, error);
-			}, state);
-
-		}, (err) => {
-			console.error(`Fehler beim Aufruf von getState()... ${JSON.stringify(err)}`);
-			error('Nutzer nicht angemeldet!');
-		});
-
-	},
-	getIDToken: function (success, error) {
-		this.getData('state', (state) => {
-			if (this.debug) {
-				console.debug(state);
+		this.hasAccount((result)=>{
+			if (result)
+			{
+				this.getData('state', (state) => {
+					this.hasValidAccessToken(() => {
+						let local = this.convertToObject(state);
+						success(local.access_token);
+						return;
+					}, () => {
+						this.getConnectionConfig((res) => {
+							let data = this.convertToObject(state);
+							let config = this.convertToObject(res);
+							this.getOIDCConfig((openidconfig) => {
+								this.performRefreshRequest(timeout, config.issuer, config.client_id, config.scope, data.refresh_token, (res2) => {
+									let result = this.convertToObject(res2);
+									success(result.access_token);
+								}, error, openidconfig);
+							},
+								() => {
+									this.performRefreshRequest(timeout, config.issuer, config.client_id, config.scope, data.refresh_token, (res2) => {
+										let result = this.convertToObject(res2);
+										success(result.access_token);
+									}, error);
+								});
+		
+						}, error);
+					}, state);
+		
+				}, (err) => {
+					console.error(`Fehler beim Aufruf von getState()... ${JSON.stringify(err)}`);
+					error('Nutzer nicht angemeldet!');
+				});
 			}
-			if (state) {
-				let data = this.convertToObject(state);
-				success(data.id_token);
-			}
-			else {
-				console.error('state is unavailable');
+			else
+			{
+				console.warn(err);
 				error('Nutzer nicht angemeldet!');
 			}
-		}, (err) => {
-			console.warn(err);
-			error('Nutzer nicht angemeldet!');
-		});
+		},error);
+	},
+	getIDToken: function (success, error) {
+		this.hasAccount((result)=>{
+			if (result)
+			{
+				this.getData('state', (state) => {
+					if (this.debug) {
+						console.debug(state);
+					}
+					if (state) {
+						let data = this.convertToObject(state);
+						success(data.id_token);
+					}
+					else {
+						console.error('state is unavailable');
+						error('Nutzer nicht angemeldet!');
+					}
+				}, (err) => {
+					console.warn(err);
+					error('Nutzer nicht angemeldet!');
+				});
+			}
+			else
+			{
+				console.warn('Nutzer nicht angemeldet!');
+				error('Nutzer nicht angemeldet!');
+			}
+		},error);		
 	},
 	hasValidAccessToken: function (success, error, state) {
 		const ERROR_INVALID_TOKEN = 'Ungültiges Token';
@@ -536,15 +577,12 @@ var oidc = {
 							(cfg) => {
 							  this.getData('state', 
 								(data) => {
-									let authState = null;
-									if (data!==null&&data!==undefined) {
-										authState = typeof data === 'string' ? JSON.parse(data) : data;
-									}
+									let authState = typeof data === 'string' ? JSON.parse(data) : data;
 									cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
 									this.startLogoutFlow({
 									  post_logout_redirect_uri: cfg.redirect_uri,
 									  endpoint: config.end_session_endpoint,
-									  id_token_hint: authState!==null&&authState!==undefined&&authState!==''?authState.id_token:''
+									  id_token_hint: authState.id_token
 									}, (res) => {
 										if (this.debug)
 										{
@@ -635,15 +673,12 @@ var oidc = {
 										(cfg) => {
 										  this.getData('state', 
 											(data) => {
-												let authState = null;
-												if (data!==null&&data!==undefined) {
-													authState = typeof data === 'string' ? JSON.parse(data) : data;
-												}
+												let authState = typeof data === 'string' ? JSON.parse(data) : data;
 												cfg = typeof cfg ==='string'? JSON.parse(cfg) : cfg;
 												this.startLogoutFlow({
 												  post_logout_redirect_uri: cfg.redirect_uri,
 												  endpoint: config.end_session_endpoint,
-												  id_token_hint: authState!==null&&authState!==undefined&&authState!==''?authState.id_token:''
+												  id_token_hint: authState.id_token
 												}, (res) => {
 													if (this.debug)
 													{
