@@ -54,7 +54,7 @@ public class oidc extends CordovaPlugin {
     super.onActivityResult(requestCode, resultCode, intent);
     Log.d(TAG, "onActivityResult");
 
-    cordova.setActivityResultCallback(null);
+
     if (intent != null) {
       if (resultCode == Activity.RESULT_OK) {
         _defaultCallbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK));
