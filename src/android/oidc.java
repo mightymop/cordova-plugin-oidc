@@ -54,6 +54,7 @@ public class oidc extends CordovaPlugin {
     super.onActivityResult(requestCode, resultCode, intent);
     Log.d(TAG, "onActivityResult");
 
+    cordova.setActivityResultCallback(null);
     if (intent != null) {
       if (resultCode == Activity.RESULT_OK) {
         _defaultCallbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK));
@@ -86,11 +87,15 @@ public class oidc extends CordovaPlugin {
 
       Intent i = new Intent("de.berlin.polizei.oidcsso."+callbackurlsuffix);
       i.putExtra("callbackurl", CALLBACK_URL);
+      //i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
       PluginResult result = new PluginResult(PluginResult.Status.NO_RESULT);
       result.setKeepCallback(true);
       _defaultCallbackContext.sendPluginResult(result);
+
+      cordova.setActivityResultCallback(this);
       cordova.startActivityForResult(this, i, REQUEST_ID);
+      //cordova.getActivity().startActivity(i);
     } catch (Exception e) {
       PluginResult result = new PluginResult(PluginResult.Status.ERROR, e.getMessage());
       _defaultCallbackContext.sendPluginResult(result);

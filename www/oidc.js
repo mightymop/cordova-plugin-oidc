@@ -26,7 +26,9 @@ var oidc = {
 		this.hasAccount((result)=>{
 			if (result)
 			{
-				exec(success, error, PLUGIN_NAME, 'getToken', []);
+				exec((data)=>{
+					success(JSON.parse(data).access_token);
+				}, error, PLUGIN_NAME, 'getToken', []);
 			}
 			else
 			{
@@ -38,7 +40,9 @@ var oidc = {
 		this.hasAccount((result)=>{
 			if (result)
 			{
-				exec(success, error, PLUGIN_NAME, 'getToken', []);
+				exec((data)=>{
+					success(JSON.parse(data).id_token);
+				}, error, PLUGIN_NAME, 'getToken', []);
 			}
 			else
 			{
