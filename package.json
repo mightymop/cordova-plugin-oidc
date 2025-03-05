@@ -42,5 +42,5 @@
   "license": "ISC",
   "name": "cordova-plugin-oidc",
   "types": "./types/index.d.ts",
-  "version": "1.0.0"
+  "version": "2.0.0"
 }
