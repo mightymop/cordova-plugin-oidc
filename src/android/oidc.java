@@ -105,17 +105,46 @@ public class oidc extends CordovaPlugin {
   private void hasAccount(CallbackContext callbackContext) {
 
     Log.d(TAG, "hasAccount");
-    if (getToken(null))
-    {
-      PluginResult result = new PluginResult(PluginResult.Status.OK, true);
-      callbackContext.sendPluginResult(result);
+    String path = "content://de.berlin.polizei.oidcsso.tokenprovider/hasaccount";
+    Uri uri = Uri.parse(path);
+    Cursor cursor = cordova.getActivity().getContentResolver().query(uri, null, null, null, null);
+    if (cursor != null) {
+
+      //Anzahl der Ergebnissezeilen (0 = keine Daten, User abgemeldet oder 1 für Daten wenn angemeldet)
+      int anzRows = cursor.getCount();
+
+      if (anzRows==0)
+      {
+        cursor.close();
+        PluginResult result = new PluginResult(PluginResult.Status.ERROR, "no data from provider");
+        callbackContext.sendPluginResult(result);
+      }
+
+      String[] columnNames = cursor.getColumnNames();
+      int index_id_token = Arrays.asList(columnNames).indexOf("hasaccount");
+
+      cursor.moveToFirst();
+
+      String hasaccount = cursor.getString(index_id_token);
+      cursor.close();
+
+      if (hasaccount.equalsIgnoreCase("true"))
+      {
+        PluginResult result = new PluginResult(PluginResult.Status.OK, true);
+        callbackContext.sendPluginResult(result);
+      }
+      else
+      {
+        PluginResult result = new PluginResult(PluginResult.Status.OK, false);
+        callbackContext.sendPluginResult(result);
+      }
     }
     else
     {
-      PluginResult result = new PluginResult(PluginResult.Status.OK, false);
+      //unbekannter Fehler!
+      PluginResult result = new PluginResult(PluginResult.Status.ERROR, "unknown error");
       callbackContext.sendPluginResult(result);
     }
-
   }
 
   private boolean getToken(CallbackContext callbackContext)
