@@ -2,13 +2,13 @@ var exec = require('cordova/exec');
 var PLUGIN_NAME = 'oidc';
 
 var oidc = {
-	
+
 	login: function(success,error,config) {
-	
+
 		exec(success, error, PLUGIN_NAME, 'login', [config]);
 	},
 	logout: function (success, error,config) {
-	
+
 		exec(success, error, PLUGIN_NAME, 'logout', [config]);
 	},
 
@@ -27,7 +27,8 @@ var oidc = {
 			if (result)
 			{
 				exec((data)=>{
-					success(JSON.parse(data).access_token);
+					var json = typeof data ==='string' ? JSON.parse(data): data;
+					success(json.access_token);
 				}, error, PLUGIN_NAME, 'getToken', []);
 			}
 			else
@@ -41,14 +42,15 @@ var oidc = {
 			if (result)
 			{
 				exec((data)=>{
-					success(JSON.parse(data).id_token);
+					var json = typeof data ==='string' ? JSON.parse(data): data;
+					success(json.id_token);
 				}, error, PLUGIN_NAME, 'getToken', []);
 			}
 			else
 			{
 				error('Nutzer nicht angemeldet!');
 			}
-		},error);		
+		},error);
 	},
 	getUserInfos: function (success, error) {
 		this.hasAccount((result)=>{
@@ -60,9 +62,9 @@ var oidc = {
 			{
 				error('Nutzer nicht angemeldet!');
 			}
-		},error);		
+		},error);
 	}
-	
+
 
 };
 
