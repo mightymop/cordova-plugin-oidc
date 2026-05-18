@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <plugin xmlns="http://www.phonegap.com/ns/plugins/1.0"
         id="cordova-plugin-oidc"
-        version="1.0.0">
+        version="2.1.0">
 
   <name>oidc</name>
 
@@ -14,12 +14,12 @@
   </js-module>
 
   <platform name="android">
-    <config-file target="res/xml/config.xml" parent="/*">		  
+    <config-file target="res/xml/config.xml" parent="/*">
       <feature name="oidc">
         <param name="android-package" value="de.mopsdom.oidc.cordova.oidc"/>
-      </feature>	  	
+      </feature>
     </config-file>
-	
+
 	<config-file target="AndroidManifest.xml" parent="/manifest/application/activity[@android:name='MainActivity']">
       <intent-filter>
         <action android:name="${applicationId}.RESULT" />
@@ -33,6 +33,41 @@
     </config-file>
 	<source-file src="src/android/oidc.java" target-dir="src/de/mopsdom/oidc/cordova"/>
   </platform>
+	<platform name="ios">
+		<config-file target="config.xml" parent="/*">
+			<!-- Der Name muss exakt mit @objc(OIDCPlugin) in Swift übereinstimmen -->
+			<feature name="oidc">
+				<param name="ios-package" value="OIDCPlugin" />
+			</feature>
+		</config-file>
+    <config-file target="*-Info.plist" parent="CFBundleURLTypes">
+      <array>
+          <dict>
+              <key>CFBundleURLName</key>
+              <string>de.berlin.polizei.polosk3</string>
+              <key>CFBundleURLSchemes</key>
+              <array>
+                  <!-- Hier NUR das Schema ohne :// eintragen -->
+                  <string>adfs</string>
+              </array>
+          </dict>
+      </array>
+  </config-file>
 
+		<!-- AppAuth via CocoaPods integrieren -->
+		<podspec>
+			<config>
+				<source url="https://github.com/CocoaPods/Specs.git"/>
+			</config>
+			<pods use-frameworks="true">
+				<pod name="AppAuth" spec="~> 1.6.2" />
+			</pods>
+		</podspec>
+
+		<!-- Deine Swift Dateien -->
+		<source-file src="src/ios/OIDCPlugin.swift" />
+		<source-file src="src/ios/AuthService.swift" />
+		<source-file src="src/ios/KeychainTokenStore.swift" />
+	</platform>
 
 </plugin>

@@ -3,13 +3,13 @@ var PLUGIN_NAME = 'oidc';
 
 var oidc = {
 	
-	login: function(success,error) {
+	login: function(success,error,config) {
 	
-		exec(success, error, PLUGIN_NAME, 'login', []);
+		exec(success, error, PLUGIN_NAME, 'login', [config]);
 	},
-	logout: function (success, error) {
+	logout: function (success, error,config) {
 	
-		exec(success, error, PLUGIN_NAME, 'logout', []);
+		exec(success, error, PLUGIN_NAME, 'logout', [config]);
 	},
 
 	hasAccount: function (success,error) {
