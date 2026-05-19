@@ -42,7 +42,7 @@ final class AuthService: NSObject, ObservableObject {
                 scopes: scopes,
                 redirectURL: redirectURI,
                 responseType: OIDResponseTypeCode,
-                additionalParameters: nil
+                additionalParameters: ["prompt":"login"]
             )
 
             self.currentAuthorizationFlow = OIDAuthState.authState(byPresenting: request, presenting: vc) { authState, error in
