@@ -52,11 +52,11 @@ var oidc = {
 			}
 		},error);
 	},
-	getUserInfos: function (success, error) {
+	getUserInfos: function (success, error, config) {
 		this.hasAccount((result)=>{
 			if (result)
 			{
-				exec(success, error, PLUGIN_NAME, 'usersinfos', []);
+				exec(success, error, PLUGIN_NAME, 'usersinfos', [config]);
 			}
 			else
 			{

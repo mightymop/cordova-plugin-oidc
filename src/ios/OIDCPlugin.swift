@@ -75,14 +75,98 @@ class OIDCPlugin: CDVPlugin {
         }
     }
     
-    @objc(usersinfos:)
-    func usersinfos(command: CDVInvokedUrlCommand) {
-        // Optional: Wenn du den Token entschlüsseln willst (JWT) oder einen Request an /userinfo machst.
-        // Hier als Platzhalter:
-        let result = CDVPluginResult(status: CDVCommandStatus_ERROR, messageAs: "userinfos endpoint noch nicht implementiert")
-        self.commandDelegate.send(result, callbackId: command.callbackId)
-    }
-    
+	@objc(usersinfos:)
+	func usersinfos(command: CDVInvokedUrlCommand) {
+
+		guard let config = command.arguments.first as? [String: Any],
+			  let issuerStr = config["issuer"] as? String,
+			  let issuer = URL(string: issuerStr)
+		else {
+			let result = CDVPluginResult(
+				status: CDVCommandStatus_ERROR,
+				messageAs: "Ungültige Konfigurationsparameter"
+			)
+			self.commandDelegate.send(result, callbackId: command.callbackId)
+			return
+		}
+
+		// 1. Token intern holen
+		authService.performAuthenticatedRequest { accessToken, idToken, error in
+
+			if let error = error {
+				let result = CDVPluginResult(
+					status: CDVCommandStatus_ERROR,
+					messageAs: error.localizedDescription
+				)
+				self.commandDelegate.send(result, callbackId: command.callbackId)
+				return
+			}
+
+			guard let accessToken = accessToken else {
+				let result = CDVPluginResult(
+					status: CDVCommandStatus_ERROR,
+					messageAs: "Kein Access Token vorhanden"
+				)
+				self.commandDelegate.send(result, callbackId: command.callbackId)
+				return
+			}
+
+			// 2. UserInfo Endpoint bauen
+			let userInfoURL = issuer.appendingPathComponent("userinfo")
+
+			var request = URLRequest(url: userInfoURL)
+			request.httpMethod = "GET"
+			request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+			request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+			// 3. Request senden
+			let task = URLSession.shared.dataTask(with: request) { data, response, error in
+
+				if let error = error {
+					let result = CDVPluginResult(
+						status: CDVCommandStatus_ERROR,
+						messageAs: error.localizedDescription
+					)
+					self.commandDelegate.send(result, callbackId: command.callbackId)
+					return
+				}
+
+				guard let httpResponse = response as? HTTPURLResponse,
+					  let data = data else {
+
+					let result = CDVPluginResult(
+						status: CDVCommandStatus_ERROR,
+						messageAs: "Keine gültige Antwort"
+					)
+					self.commandDelegate.send(result, callbackId: command.callbackId)
+					return
+				}
+
+				if !(200...299).contains(httpResponse.statusCode) {
+					let body = String(data: data, encoding: .utf8) ?? ""
+
+					let result = CDVPluginResult(
+						status: CDVCommandStatus_ERROR,
+						messageAs: "HTTP \(httpResponse.statusCode): \(body)"
+					)
+					self.commandDelegate.send(result, callbackId: command.callbackId)
+					return
+				}
+
+				let jsonString = String(data: data, encoding: .utf8) ?? "{}"
+
+				let result = CDVPluginResult(
+					status: CDVCommandStatus_OK,
+					messageAs: jsonString
+				)
+
+				self.commandDelegate.send(result, callbackId: command.callbackId)
+			}
+
+			task.resume()
+		}
+	}
+	
     // SEHR WICHTIG: Fängt die Callback-URL ab, wenn die AppAuth-Webview zurück zur App leitet
     override func handleOpenURL(_ notification: Notification) {
         guard let url = notification.object as? URL else { return }
