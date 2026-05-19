@@ -44,11 +44,11 @@
       <array>
           <dict>
               <key>CFBundleURLName</key>
-              <string>de.berlin.polizei.polosk3</string>
+              <string>$PACKAGE_NAME</string>
               <key>CFBundleURLSchemes</key>
               <array>
                   <!-- Hier NUR das Schema ohne :// eintragen -->
-                  <string>adfs</string>
+                  <string>$PACKAGE_NAME</string>
               </array>
           </dict>
       </array>
