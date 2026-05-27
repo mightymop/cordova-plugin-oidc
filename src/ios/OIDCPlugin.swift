@@ -45,10 +45,10 @@ class OIDCPlugin: CDVPlugin {
         // idToken holen für ADFS Logout
         let idToken = authService.getIdToken()
         
-        authService.logout(presenting: self.viewController, idToken: idToken, postLogoutRedirectURI: redirectURI) {
-            let result = CDVPluginResult(status: success ? CDVCommandStatus_OK : CDVCommandStatus_ERROR, messageAs: success ? "Logout erfolgreich" : "Logout fehlgeschlagen")
-            self.commandDelegate.send(result, callbackId: command.callbackId)
-        }
+        authService.logout(presenting: self.viewController, idToken: idToken, postLogoutRedirectURI: redirectURI) { success in
+          let result = CDVPluginResult(status: success ? CDVCommandStatus_OK : CDVCommandStatus_ERROR, messageAs: success ? "Logout erfolgreich" : "Logout fehlgeschlagen")
+          self.commandDelegate.send(result, callbackId: command.callbackId)
+		}
     }
     
     @objc(hasAccount:)
