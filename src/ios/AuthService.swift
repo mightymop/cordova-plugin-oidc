@@ -26,6 +26,7 @@ final class AuthService: NSObject, ObservableObject {
                clientId: String,
                scopes: [String],
                redirectURI: URL,
+			   prompt: Bool,
                completion: @escaping (Bool) -> Void) {
         
         print("Login func")
@@ -42,7 +43,7 @@ final class AuthService: NSObject, ObservableObject {
                 scopes: scopes,
                 redirectURL: redirectURI,
                 responseType: OIDResponseTypeCode,
-                additionalParameters: ["prompt":"login"]
+                additionalParameters: prompt ? ["prompt":"login"] : nil
             )
 
             self.currentAuthorizationFlow = OIDAuthState.authState(byPresenting: request, presenting: vc) { authState, error in
@@ -84,14 +85,14 @@ final class AuthService: NSObject, ObservableObject {
     }
 
     // MARK: - Logout (ADFS wichtig!)
-    func logout(presenting vc: UIViewController, idToken: String?, postLogoutRedirectURI: URL, completion: @escaping () -> Void) {
+    func logout(presenting vc: UIViewController, idToken: String?, postLogoutRedirectURI: URL, completion: @escaping (Bool) -> Void) {
         print("Logout func")
         guard let configuration = authState?.lastAuthorizationResponse.request.configuration,
               configuration.discoveryDocument?.endSessionEndpoint != nil else {
             
             // Wenn kein EndSessionEndpoint da ist, löschen wir zumindest lokal
             self.clearState()
-            completion()
+            completion(true)
             return
         }
 
@@ -105,14 +106,44 @@ final class AuthService: NSObject, ObservableObject {
         guard let externalUserAgent = OIDExternalUserAgentIOS(presenting: vc) else {
             print("Failed to create external user agent for logout")
             self.clearState()
-            completion()
+            completion(false)
             return
         }
 
-        self.currentAuthorizationFlow = OIDAuthorizationService.present(request, externalUserAgent: externalUserAgent) { _, _ in
-            self.clearState()
-            completion()
-        }
+        self.currentAuthorizationFlow = OIDAuthorizationService.present(
+			request,
+			externalUserAgent: externalUserAgent
+		) { response, error in
+
+			if let error = error as NSError? {
+
+				// User hat Logout abgebrochen
+				if error.domain == OIDGeneralErrorDomain,
+				   error.code == OIDErrorCode.userCanceledAuthorizationFlow.rawValue {
+
+					print("Logout abgebrochen")
+					completion(false)
+					return
+				}
+
+				print("Logout error:", error.localizedDescription)
+				completion(false)
+				return
+			}
+
+			if response != nil {
+
+				print("Logout erfolgreich")
+
+				self.clearState()
+				completion(true)
+
+			} else {
+
+				print("Unknown logout state")
+				completion(false)
+			}
+		}
     }
 
     // MARK: - Persistierung

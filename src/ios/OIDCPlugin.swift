@@ -14,6 +14,7 @@ class OIDCPlugin: CDVPlugin {
               let issuer = URL(string: issuerStr),
               let clientId = config["clientId"] as? String,
               let scopesStr = config["scopes"] as? String,
+			  let prompt = config["prompt"] as? Bool,
               let redirectURIStr = config["redirectURI"] as? String,
               let redirectURI = URL(string: redirectURIStr) else {
             
@@ -25,7 +26,7 @@ class OIDCPlugin: CDVPlugin {
         let scopes = scopesStr.components(separatedBy: " ")
         
         // ViewController von Cordova nutzen
-        authService.login(presenting: self.viewController, issuer: issuer, clientId: clientId, scopes: scopes, redirectURI: redirectURI) { success in
+        authService.login(presenting: self.viewController, issuer: issuer, clientId: clientId, scopes: scopes, redirectURI: redirectURI, prompt: prompt) { success in
             let result = CDVPluginResult(status: success ? CDVCommandStatus_OK : CDVCommandStatus_ERROR, messageAs: success ? "Login erfolgreich" : "Login fehlgeschlagen")
             self.commandDelegate.send(result, callbackId: command.callbackId)
         }
@@ -45,7 +46,7 @@ class OIDCPlugin: CDVPlugin {
         let idToken = authService.getIdToken()
         
         authService.logout(presenting: self.viewController, idToken: idToken, postLogoutRedirectURI: redirectURI) {
-            let result = CDVPluginResult(status: CDVCommandStatus_OK)
+            let result = CDVPluginResult(status: success ? CDVCommandStatus_OK : CDVCommandStatus_ERROR, messageAs: success ? "Logout erfolgreich" : "Logout fehlgeschlagen")
             self.commandDelegate.send(result, callbackId: command.callbackId)
         }
     }
