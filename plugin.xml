@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <plugin xmlns="http://www.phonegap.com/ns/plugins/1.0"
         id="cordova-plugin-oidc"
-        version="2.1.0">
+        version="2.2.0">
 
   <name>oidc</name>
 
@@ -34,6 +34,7 @@
 	<source-file src="src/android/oidc.java" target-dir="src/de/mopsdom/oidc/cordova"/>
   </platform>
 	<platform name="ios">
+    <hook type="after_prepare" src="hooks/after_prepare/apply_entitlements.js" />
 		<config-file target="config.xml" parent="/*">
 			<!-- Der Name muss exakt mit @objc(OIDCPlugin) in Swift übereinstimmen -->
 			<feature name="oidc">
@@ -60,9 +61,15 @@
 				<source url="https://github.com/CocoaPods/Specs.git"/>
 			</config>
 			<pods use-frameworks="true">
-				<pod name="AppAuth" spec="~> 1.6.2" />
+				<pod name="AppAuth" spec="~> 1.7.6" />
 			</pods>
 		</podspec>
+
+
+    <resource-file
+    src="src/ios/OIDC.entitlements"
+    target="App/Resources/OIDC.entitlements" />
+
 
 		<!-- Deine Swift Dateien -->
 		<source-file src="src/ios/OIDCPlugin.swift" />

@@ -11,6 +11,7 @@ final class AuthService: NSObject, ObservableObject {
     private var currentAuthorizationFlow: OIDExternalUserAgentSession?
 
     private let tokenStore = KeychainTokenStore()
+    public let globalStore = GlobalAuthStore()
 
     @Published private(set) var isAuthenticated: Bool = false
 
@@ -20,15 +21,32 @@ final class AuthService: NSObject, ObservableObject {
         self.isAuthenticated = authState?.isAuthorized ?? false
     }
 
-    // MARK: - Login mit dynamischer Konfiguration
+    // MARK: - VALIDATION
+
+    func isSessionValid() -> Bool {
+
+        guard let login = globalStore.getLogin() else {
+            return false
+        }
+
+        if let logout = globalStore.getLogout(),
+           logout > login {
+            return false
+        }
+
+        return true
+    }
+
+    // MARK: - LOGIN
+
     func login(presenting vc: UIViewController,
                issuer: URL,
                clientId: String,
                scopes: [String],
                redirectURI: URL,
-			   prompt: Bool,
+               prompt: Bool,
                completion: @escaping (Bool) -> Void) {
-        
+
         print("Login func")
         OIDAuthorizationService.discoverConfiguration(forIssuer: issuer) { configuration, error in
             guard let configuration = configuration else {
@@ -37,18 +55,22 @@ final class AuthService: NSObject, ObservableObject {
                 return
             }
 
+            let forcePrompt = !self.isSessionValid() || prompt
+
             let request = OIDAuthorizationRequest(
                 configuration: configuration,
                 clientId: clientId,
                 scopes: scopes,
                 redirectURL: redirectURI,
                 responseType: OIDResponseTypeCode,
-                additionalParameters: prompt ? ["prompt":"login"] : nil
+                additionalParameters: forcePrompt ? ["prompt":"login"] : nil
             )
 
             self.currentAuthorizationFlow = OIDAuthState.authState(byPresenting: request, presenting: vc) { authState, error in
                 if let state = authState {
                     self.setAuthState(state)
+		    // 🔥 GLOBAL LOGIN UPDATE
+                    self.globalStore.setLogin(Date())
                     completion(true)
                 } else {
                     print("Auth error:", error?.localizedDescription ?? "Unknown")
@@ -68,18 +90,23 @@ final class AuthService: NSObject, ObservableObject {
     }
 
     // MARK: - Token Access
-    func performAuthenticatedRequest(_ callback: @escaping (String?, String?, Error?) -> Void) {
-        guard let state = authState else {
-            let error = NSError(domain: "AuthService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Nicht authentifiziert"])
-            callback(nil, nil, error)
-            return
-        }
+     func performAuthenticatedRequest(_ callback: @escaping (String?, String?, Error?) -> Void) {
+    // 1. Sicherheit: Ist das State-Objekt vorhanden UND autorisiert?
+		guard let state = self.authState, state.isAuthorized else {
+			clearState()
+			let error = NSError(domain: "AuthService", 
+								code: -999, 
+								userInfo: [NSLocalizedDescriptionKey: "Session invalid (global logout)"])
+			callback(nil, nil, error)
+			return
+		}
 
-        state.performAction { accessToken, idToken, error in
-            callback(accessToken, idToken, error)
-        }
-    }
-    
+		// 2. Jetzt ist 'state' sicher ausgepackt und wir führen die Aktion aus
+		state.performAction { accessToken, idToken, error in
+			callback(accessToken, idToken, error)
+		}
+	}
+
     func getIdToken() -> String? {
         return authState?.lastTokenResponse?.idToken
     }
@@ -87,15 +114,20 @@ final class AuthService: NSObject, ObservableObject {
     // MARK: - Logout (ADFS wichtig!)
     func logout(presenting vc: UIViewController, idToken: String?, postLogoutRedirectURI: URL, completion: @escaping (Bool) -> Void) {
         print("Logout func")
+
         guard let configuration = authState?.lastAuthorizationResponse.request.configuration,
-              configuration.discoveryDocument?.endSessionEndpoint != nil else {
+            configuration.discoveryDocument?.endSessionEndpoint != nil else {
             
             // Wenn kein EndSessionEndpoint da ist, löschen wir zumindest lokal
             self.clearState()
+	    // fallback
+            globalStore.setLogout(Date())
             completion(true)
             return
         }
 
+
+        //  OIDC END SESSION REQUEST
         let request = OIDEndSessionRequest(
             configuration: configuration,
             idTokenHint: idToken ?? "",
@@ -134,7 +166,8 @@ final class AuthService: NSObject, ObservableObject {
 			if response != nil {
 
 				print("Logout erfolgreich")
-
+ 				// 1. GLOBAL LOGOUT MARKER (sofort)
+		        self.globalStore.setLogout(Date())
 				self.clearState()
 				completion(true)
 
@@ -153,7 +186,7 @@ final class AuthService: NSObject, ObservableObject {
         state.stateChangeDelegate = self
         self.isAuthenticated = state.isAuthorized
     }
-    
+
     private func clearState() {
         self.authState = nil
         self.isAuthenticated = false

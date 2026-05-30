@@ -9,9 +9,39 @@ import Foundation
 import Security
 import AppAuth
 
+final class GlobalAuthStore {
+
+    private let suiteName = "group.plugin.cordova.oidc"
+
+    private let loginKey = "globalLoginDate"
+    private let logoutKey = "globalLogoutDate"
+
+    private var defaults: UserDefaults? {
+        UserDefaults(suiteName: suiteName)
+    }
+
+    // MARK: Login
+    func setLogin(_ date: Date) {
+        defaults?.set(date, forKey: loginKey)
+    }
+
+    func getLogin() -> Date? {
+        defaults?.object(forKey: loginKey) as? Date
+    }
+
+    // MARK: Logout
+    func setLogout(_ date: Date) {
+        defaults?.set(date, forKey: logoutKey)
+    }
+
+    func getLogout() -> Date? {
+        defaults?.object(forKey: logoutKey) as? Date
+    }
+}
+
 final class KeychainTokenStore {
 
-    private let service = "de.berlin.polizei.ios-oidc-app-a"
+    private let service = "plugin.cordova.oidc"
     private let account = "oidc_state"
 
     func save(_ state: OIDAuthState) throws {

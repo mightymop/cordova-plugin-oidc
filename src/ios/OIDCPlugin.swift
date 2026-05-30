@@ -53,7 +53,21 @@ class OIDCPlugin: CDVPlugin {
     
     @objc(hasAccount:)
     func hasAccount(command: CDVInvokedUrlCommand) {
-        let isAuthenticated = authService.isAuthenticated
+        
+	if !authService.isSessionValid() {
+
+		// Session ist global invalid
+		let result = CDVPluginResult(
+			status: CDVCommandStatus_ERROR,
+			messageAs: "Benutzer ist abgemeldet."
+		)
+
+		self.commandDelegate.send(result, callbackId: command.callbackId)
+		return
+	}
+
+	let isAuthenticated = authService.isAuthenticated
+
         let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: isAuthenticated)
         self.commandDelegate.send(result, callbackId: command.callbackId)
     }
