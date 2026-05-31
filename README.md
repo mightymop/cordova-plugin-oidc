@@ -35,3 +35,8 @@ error(err:any)   = callback with error message
 	//checks if user is logged in
 		
 ```
+
+# iOS
+
+- add the AppGroup group.plugin.cordova.oidc for SSO and SLO
+
