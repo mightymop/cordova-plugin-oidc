@@ -40,3 +40,13 @@ error(err:any)   = callback with error message
 
 - add the AppGroup group.plugin.cordova.oidc for SSO and SLO
 
+- add config json to login() and logout() as parameter...
+
+e.g. 
+	{
+	  issuer : "https://dc2019.poldom.local/adfs",
+	  clientId: "client-UUID-ID",
+	  scopes: "openid profile email offline_access api",
+	  redirectURI: "myapp.custom.com://",
+	  prompt: true
+	};
