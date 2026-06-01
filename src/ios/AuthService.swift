@@ -45,6 +45,7 @@ final class AuthService: NSObject, ObservableObject {
                scopes: [String],
                redirectURI: URL,
                prompt: Bool,
+               slo: Bool,
                completion: @escaping (Bool) -> Void) {
 
         print("Login func")
@@ -55,7 +56,7 @@ final class AuthService: NSObject, ObservableObject {
                 return
             }
 
-            let forcePrompt = !self.isSessionValid() || prompt
+            let forcePrompt = slo ? !self.isSessionValid() || prompt : prompt
 
             let request = OIDAuthorizationRequest(
                 configuration: configuration,
@@ -127,7 +128,7 @@ final class AuthService: NSObject, ObservableObject {
         }
 
 
-        //  OIDC END SESSION REQUEST
+        // 🔥 2. OIDC END SESSION REQUEST
         let request = OIDEndSessionRequest(
             configuration: configuration,
             idTokenHint: idToken ?? "",
@@ -166,7 +167,7 @@ final class AuthService: NSObject, ObservableObject {
 			if response != nil {
 
 				print("Logout erfolgreich")
- 				// 1. GLOBAL LOGOUT MARKER (sofort)
+ 				// 🔥 1. GLOBAL LOGOUT MARKER (sofort)
 		        self.globalStore.setLogout(Date())
 				self.clearState()
 				completion(true)
