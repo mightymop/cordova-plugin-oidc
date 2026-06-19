@@ -21,6 +21,15 @@ var oidc = {
 			error(err)
 		}
 	},
+	validSession: function (success, error) {
+		exec(
+			success,
+			error,
+			PLUGIN_NAME,
+			"validSession",
+			[]
+		);
+	},
 	getAccessToken: function (success, error) {
 
 		this.hasAccount((result)=>{

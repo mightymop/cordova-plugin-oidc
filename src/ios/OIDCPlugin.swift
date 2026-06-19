@@ -6,6 +6,47 @@ import AppAuth
 class OIDCPlugin: CDVPlugin {
     
     let authService = AuthService.shared
+
+	func validSession(command: CDVInvokedUrlCommand) {
+
+		AuthService.shared.validSession { result in
+
+			var pluginResult: CDVPluginResult
+
+
+			switch result {
+
+			case .valid:
+
+				pluginResult = CDVPluginResult(
+					status: CDVCommandStatus_OK,
+					messageAs: true
+				)
+
+
+			case .invalid:
+
+				pluginResult = CDVPluginResult(
+					status: CDVCommandStatus_OK,
+					messageAs: false
+				)
+
+
+			case .unavailable:
+
+				pluginResult = CDVPluginResult(
+					status: CDVCommandStatus_ERROR,
+					messageAs: "Network unavailable"
+				)
+			}
+
+
+			self.commandDelegate.send(
+				pluginResult,
+				callbackId: command.callbackId
+			)
+		}
+	}
     
     @objc(login:)
     func login(command: CDVInvokedUrlCommand) {
