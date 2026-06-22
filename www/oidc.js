@@ -12,23 +12,24 @@ var oidc = {
 		exec(success, error, PLUGIN_NAME, 'logout', [config]);
 	},
 
+	//deprecated
 	hasAccount: function (success,error) {
 		try {
-			exec(success, error, PLUGIN_NAME, 'hasAccount', []);
+			exec(success, error, PLUGIN_NAME, 'isAuthenticated', []);
 
 		} catch (err) {
 			console.error('Error writing to storage:', err);
 			error(err)
 		}
 	},
-	validSession: function (success, error) {
-		exec(
-			success,
-			error,
-			PLUGIN_NAME,
-			"validSession",
-			[]
-		);
+	isAuthenticated: function (success,error) {
+		try {
+			exec(success, error, PLUGIN_NAME, 'isAuthenticated', []);
+
+		} catch (err) {
+			console.error('Error writing to storage:', err);
+			error(err)
+		}
 	},
 	getAccessToken: function (success, error) {
 

@@ -12,12 +12,6 @@ extension AuthService: OIDAuthStateChangeDelegate {
     }
 }
 
-enum SessionValidationResult {
-    case valid
-    case invalid   // Refresh Token tot, erneuter Login notwendig
-    case unavailable // Netzwerk / Serverproblem
-}
-
 final class AuthService: NSObject, ObservableObject {
 
     static let shared = AuthService()
@@ -208,97 +202,5 @@ final class AuthService: NSObject, ObservableObject {
         self.isAuthenticated = false
         self.tokenStore.clear()
     }
-
-    func validSession(completion: @escaping (SessionValidationResult) -> Void) {
-
-        guard let state = authState else {
-            completion(.invalid)
-            return
-        }
-
-        guard state.isAuthorized,
-            state.refreshToken != nil else {
-            completion(.invalid)
-            return
-        }
-
-
-        let refreshRequest = state.tokenRefreshRequest(
-            withAdditionalParameters: nil
-        )
-
-
-        OIDAuthorizationService.perform(refreshRequest) { response, error in
-
-            // ✅ Refresh erfolgreich
-            if let response = response {
-
-                state.update(
-                    with: response,
-                    error: nil
-                )
-
-                self.setAuthState(state)
-
-                completion(.valid)
-                return
-            }
-
-
-            guard let error = error as NSError? else {
-                completion(.unavailable)
-                return
-            }
-
-
-            // OAuth Fehler auswerten
-            if let oauthError = error.userInfo[OIDErrorResponseErrorKey] as? OIDTokenErrorResponse {
-
-                switch oauthError.error {
-
-                case "invalid_grant":
-
-                    // Refresh Token ungültig
-                    self.clearState()
-
-                    DispatchQueue.main.async {
-                        self.globalStore.setLogout(Date())
-                    }
-
-                    completion(.invalid)
-
-
-                case "invalid_client":
-
-                    // Konfiguration kaputt
-                    completion(.invalid)
-
-
-                case "temporarily_unavailable",
-                    "server_error":
-
-                    // Provider nicht erreichbar
-                    completion(.unavailable)
-
-
-                default:
-
-                    completion(.unavailable)
-                }
-
-                return
-            }
-
-
-            // Netzwerkfehler erkennen
-            if error.domain == NSURLErrorDomain {
-
-                completion(.unavailable)
-                return
-            }
-
-
-            completion(.unavailable)
-        }
-    }
 }
+

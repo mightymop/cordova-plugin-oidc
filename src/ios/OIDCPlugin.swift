@@ -7,47 +7,6 @@ class OIDCPlugin: CDVPlugin {
     
     let authService = AuthService.shared
 
-	func validSession(command: CDVInvokedUrlCommand) {
-
-		AuthService.shared.validSession { result in
-
-			var pluginResult: CDVPluginResult
-
-
-			switch result {
-
-			case .valid:
-
-				pluginResult = CDVPluginResult(
-					status: CDVCommandStatus_OK,
-					messageAs: true
-				)
-
-
-			case .invalid:
-
-				pluginResult = CDVPluginResult(
-					status: CDVCommandStatus_OK,
-					messageAs: false
-				)
-
-
-			case .unavailable:
-
-				pluginResult = CDVPluginResult(
-					status: CDVCommandStatus_ERROR,
-					messageAs: "Network unavailable"
-				)
-			}
-
-
-			self.commandDelegate.send(
-				pluginResult,
-				callbackId: command.callbackId
-			)
-		}
-	}
-    
     @objc(login:)
     func login(command: CDVInvokedUrlCommand) {
         guard let config = command.arguments.first as? [String: Any],
@@ -93,22 +52,22 @@ class OIDCPlugin: CDVPlugin {
 		}
     }
     
-    @objc(hasAccount:)
-    func hasAccount(command: CDVInvokedUrlCommand) {
-        
-	if !authService.isSessionValid() {
+    @objc(isAuthenticated:)
+    func isAuthenticated(command: CDVInvokedUrlCommand) {
+			
+		if !authService.isSessionValid() {
 
-		// Session ist global invalid
-		let result = CDVPluginResult(
-			status: CDVCommandStatus_ERROR,
-			messageAs: "Benutzer ist abgemeldet."
-		)
+			// Session ist global invalid
+			let result = CDVPluginResult(
+				status: CDVCommandStatus_ERROR,
+				messageAs: "Benutzer ist abgemeldet."
+			)
 
-		self.commandDelegate.send(result, callbackId: command.callbackId)
-		return
-	}
+			self.commandDelegate.send(result, callbackId: command.callbackId)
+			return
+		}
 
-	let isAuthenticated = authService.isAuthenticated
+		let isAuthenticated = authService.isAuthenticated
 
         let result = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: isAuthenticated)
         self.commandDelegate.send(result, callbackId: command.callbackId)
