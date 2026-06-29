@@ -7,6 +7,12 @@ cordova plugin add https://github.com/mightymop/cordova-plugin-oidc.git
 
 ### 3. Usage:
 
+in confix.xml add:
+
+<edit-config file="app/src/main/AndroidManifest.xml" mode="merge" target="/manifest/application">
+  <application android:networkSecurityConfig="@xml/network_security_config" />
+</edit-config>
+
 methods:
 
 success = callback
