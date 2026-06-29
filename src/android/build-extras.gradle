@@ -1,0 +1,10 @@
+ext {
+    // Erlaubt es Cordova, zusätzliche Konfigurationen in den defaultConfig-Block zu injizieren
+}
+
+android {
+    defaultConfig {
+        // Holt sich dynamisch die aktuelle Anwendungs-ID (Package Name) der App
+        manifestPlaceholders = [appAuthRedirectScheme: "${-> project.android.defaultConfig.applicationId}"]
+    }
+}

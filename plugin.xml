@@ -14,24 +14,55 @@
   </js-module>
 
   <platform name="android">
+    <framework src="net.openid:appauth:0.11.1" />
+    <framework src="androidx.security:security-crypto:1.1.0-alpha06" />
+
+    <gradleArgs>
+        -PappAuthRedirectScheme=$PACKAGE_NAME
+    </gradleArgs>
+
+    <!-- <edit-config target="app/src/main/AndroidManifest.xml" parent="/manifest">
+      <application android:networkSecurityConfig="@xml/network_security_config" />
+    </edit-config> -->
+
+    <config-file target="app/src/main/AndroidManifest.xml" parent="/manifest/application">
+        <activity
+            android:name="net.openid.appauth.RedirectUriReceiverActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="$PACKAGE_NAME" />
+            </intent-filter>
+        </activity>
+    </config-file>
+
     <config-file target="res/xml/config.xml" parent="/*">
       <feature name="oidc">
-        <param name="android-package" value="de.mopsdom.oidc.cordova.oidc"/>
+        <!-- <param name="android-package" value="de.mopsdom.oidc.cordova.oidc"/> -->
+        <param name="android-package" value="de.mopsdom.oidc.cordova.OIDCPlugin"/>
       </feature>
     </config-file>
 
-	<config-file target="AndroidManifest.xml" parent="/manifest/application/activity[@android:name='MainActivity']">
-      <intent-filter>
-        <action android:name="${applicationId}.RESULT" />
-        <category android:name="android.intent.category.DEFAULT" />
-      </intent-filter>
-    </config-file>
-	<config-file target="AndroidManifest.xml" parent="/manifest">
-      <queries>
-        <provider android:authorities="de.berlin.polizei.oidcsso.tokenprovider" />
-      </queries>
-    </config-file>
-	<source-file src="src/android/oidc.java" target-dir="src/de/mopsdom/oidc/cordova"/>
+    <config-file target="AndroidManifest.xml" parent="/manifest/application/activity[@android:name='MainActivity']">
+        <intent-filter>
+          <action android:name="${applicationId}.RESULT" />
+          <category android:name="android.intent.category.DEFAULT" />
+        </intent-filter>
+      </config-file>
+    <!-- <config-file target="AndroidManifest.xml" parent="/manifest">
+        <queries>
+          <provider android:authorities="de.berlin.polizei.oidcsso.tokenprovider" />
+        </queries>
+      </config-file>
+    <source-file src="src/android/oidc.java" target-dir="src/de/mopsdom/oidc/cordova"/> -->
+    <source-file src="src/android/AuthService.java" target-dir="src/de/mopsdom/oidc/cordova"/>
+    <source-file src="src/android/EncryptedTokenStore.java" target-dir="src/de/mopsdom/oidc/cordova"/>
+    <source-file src="src/android/GlobalAuthStore.java" target-dir="src/de/mopsdom/oidc/cordova"/>
+    <source-file src="src/android/OIDCPlugin.java" target-dir="src/de/mopsdom/oidc/cordova"/>
+    <source-file src="src/android/network_security_config.xml" target-dir="src/main/res/xml" />
+    <source-file src="src/android/build-extras.gradle" target-dir="app" />
   </platform>
 	<platform name="ios">
     <hook type="after_prepare" src="hooks/after_prepare/apply_entitlements.js" />

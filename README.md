@@ -1,14 +1,11 @@
-# Android:
 
 ### 1. Add plugin
 cordova plugin add https://github.com/mightymop/cordova-plugin-oidc.git
+
 ### 2. For Typescript add following code to main ts file: 
 /// &lt;reference types="cordova-plugin-oidc" /&gt;<br/>
 
-### 3. Build And Install Authenticator for Android and configure
-https://github.com/mightymop/cordova-plugin-oidc/tree/master
-
-### 4. Usage:
+### 3. Usage:
 
 methods:
 
@@ -31,22 +28,24 @@ error(err:any)   = callback with error message
 	//get current id_token
 	//result: id_token as string
 	
-	hasAccount()
+	@deprecated
+	hasAccount(success(boolean)=>{},error(e)=>{})
 	//checks if user is logged in
-		
-```
+	//use isAuthenticated(success(boolean)=>{},error(e)=>{}) instead!
+	
+	- add config json to login() and logout() as parameter...
 
-# iOS
-
-- add the AppGroup group.plugin.cordova.oidc for SSO and SLO
-
-- add config json to login() and logout() as parameter...
-
-e.g. 
+	e.g. 
 	{
 	  issuer : "https://dc2019.poldom.local/adfs",
 	  clientId: "client-UUID-ID",
 	  scopes: "openid profile email offline_access api",
 	  redirectURI: "myapp.custom.com://",
 	  prompt: true
-	};
+	};	
+```
+
+# iOS
+
+- add the AppGroup group.plugin.cordova.oidc for SSO and SLO (optional)
+
